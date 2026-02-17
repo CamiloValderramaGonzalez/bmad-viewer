@@ -28,8 +28,11 @@ export function renderDashboard(dataModel) {
 	<main class="content-area" id="content-area">
 		<div class="content-area__breadcrumb" id="wiki-breadcrumb"></div>
 		<div class="content-area__body" id="wiki-content-body">
-			<h1>Welcome to BMAD</h1>
-			<p>Select an item from the sidebar to view its content, or use <kbd>Ctrl+K</kbd> to search.</p>
+			<h1>${escapeHtml(config.project_name || 'BMAD')} ${config.project_name ? '- bmad-viewer' : 'Viewer'}</h1>
+			${config.projectContextHtml
+				? `<div class="project-intro">${config.projectContextHtml}</div>`
+				: `<p>Select an item from the sidebar to view its content, or use <kbd>Ctrl+K</kbd> to search.</p>`}
+			<h2>Modules</h2>
 			<div class="wiki-overview">
 				${wiki.modules.map((mod) => `
 				<div class="wiki-overview__module">

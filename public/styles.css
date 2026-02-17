@@ -88,6 +88,9 @@ body{font-family:var(--font-family);background:var(--bg);color:var(--text);line-
 .content-area__body a:hover{text-decoration:underline}
 .content-area__body kbd{background:var(--badge-bg);border:1px solid var(--border);border-radius:3px;padding:2px 6px;font-family:var(--font-mono);font-size:.85em}
 .content-area__empty{color:var(--text-muted);text-align:center;padding:60px 20px}
+/* Project Intro */
+.project-intro{margin-bottom:24px;padding:16px;background:var(--accent-soft);border-radius:var(--radius);border-left:3px solid var(--primary)}
+.project-intro h1,.project-intro h2{margin-top:0}
 /* Wiki Overview */
 .wiki-overview{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:var(--gap);margin-top:24px}
 .wiki-overview__module{background:var(--card-bg,var(--bg-alt));border:1px solid var(--border);border-radius:var(--radius);padding:var(--gap)}

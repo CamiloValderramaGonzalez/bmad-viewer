@@ -379,7 +379,7 @@ function parseEpicNamesFromComments(rawYaml) {
 }
 
 /**
- * Load BMAD config.
+ * Load BMAD config and project context.
  */
 function loadConfig(bmadPath, aggregator) {
 	const configPaths = [
@@ -387,15 +387,47 @@ function loadConfig(bmadPath, aggregator) {
 		join(bmadPath, 'config.yaml'),
 	];
 
+	let config = {};
 	for (const configPath of configPaths) {
 		if (existsSync(configPath)) {
 			const result = parseYaml(configPath);
 			aggregator.addResult(configPath, result);
-			return result.data || {};
+			config = result.data || {};
+			break;
 		}
 	}
 
-	return {};
+	// Look for project context or product brief for intro content
+	const projectRoot = join(bmadPath, '..');
+	const contextPaths = [
+		join(projectRoot, 'docs', 'project-context.md'),
+		join(projectRoot, 'project-context.md'),
+		join(projectRoot, '_bmad-output', 'planning-artifacts', 'product-brief.md'),
+	];
+
+	// Also search for any product-brief file with date suffix
+	const planningDir = join(projectRoot, '_bmad-output', 'planning-artifacts');
+	if (existsSync(planningDir)) {
+		try {
+			const entries = readdirSync(planningDir);
+			for (const entry of entries) {
+				if (entry.includes('product-brief') && entry.endsWith('.md')) {
+					contextPaths.push(join(planningDir, entry));
+				}
+			}
+		} catch { /* ignore */ }
+	}
+
+	for (const ctxPath of contextPaths) {
+		if (existsSync(ctxPath)) {
+			const content = readMarkdownSafe(ctxPath, aggregator);
+			config.projectContextHtml = content.html;
+			config.projectContextName = basename(ctxPath, '.md');
+			break;
+		}
+	}
+
+	return config;
 }
 
 /**
