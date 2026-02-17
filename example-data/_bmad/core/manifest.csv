@@ -1,0 +1,4 @@
+ID,Title,Type,Description
+bmad-master,BMAD Master,agent,Master orchestrator for BMAD methodology
+workflow-engine,Workflow Engine,tool,Core workflow execution engine
+brainstorming,Brainstorming,workflow,Interactive brainstorming sessions
