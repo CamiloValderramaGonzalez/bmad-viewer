@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { getMimeType } from './mime-types.js';
 import { findAvailablePort } from './port-finder.js';
-import { handleUpgrade, broadcastChange } from './websocket.js';
+import { attachWebSocket, broadcastChange } from './websocket.js';
 import { createFileWatcher } from '../watchers/file-watcher.js';
 import { buildDataModel } from '../data/data-model.js';
 import { renderDashboard } from './renderer.js';
@@ -30,7 +30,7 @@ export async function startServer({ port, bmadDir, open }) {
 		const pathname = url.pathname;
 
 		// Security headers
-		res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'");
+		res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*");
 		res.setHeader('X-Content-Type-Options', 'nosniff');
 
 		// API endpoint: get fresh HTML
@@ -60,10 +60,8 @@ export async function startServer({ port, bmadDir, open }) {
 		res.end(html);
 	});
 
-	// WebSocket upgrade handler
-	server.on('upgrade', (req, socket, head) => {
-		handleUpgrade(req, socket, head);
-	});
+	// WebSocket server
+	attachWebSocket(server);
 
 	// File watcher for live reload
 	const pendingChanges = [];

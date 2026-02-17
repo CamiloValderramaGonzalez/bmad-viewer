@@ -1,6 +1,6 @@
 {
 	"name": "bmad-viewer",
-	"version": "0.1.4",
+	"version": "0.1.6",
 	"description": "Visual dashboard for BMAD (Boring Maintainable Agile Development) projects. Wiki browser + sprint status viewer with live reload.",
 	"type": "module",
 	"bin": {
@@ -30,7 +30,8 @@
 		"chokidar": "^4.0.1",
 		"fuse.js": "^7.0.0",
 		"js-yaml": "^4.1.0",
-		"marked": "^15.0.4"
+		"marked": "^15.0.4",
+		"ws": "^8.19.0"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4"

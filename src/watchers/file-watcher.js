@@ -16,9 +16,11 @@ export function createFileWatcher(bmadDir, onChange) {
 	const watcher = chokidar.watch([watchPath, outputPath], {
 		persistent: true,
 		ignoreInitial: true,
+		usePolling: true,
+		interval: 500,
 		awaitWriteFinish: {
-			stabilityThreshold: 100,
-			pollInterval: 50,
+			stabilityThreshold: 200,
+			pollInterval: 100,
 		},
 	});
 
