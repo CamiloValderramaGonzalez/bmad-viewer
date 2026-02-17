@@ -7,11 +7,11 @@ import { Badge } from './badge.js';
  * @returns {string} HTML string
  */
 export function KanbanCard({ id, title, status, epic }) {
-	return `<div class="kanban-card kanban-card--${escapeHtml(status)}" data-id="${escapeHtml(id)}">
+	return `<a href="#project/story/${escapeHtml(id)}" class="kanban-card kanban-card--${escapeHtml(status)}" data-id="${escapeHtml(id)}">
 	<h4 class="kanban-card__title">${escapeHtml(title)}</h4>
 	<div class="kanban-card__meta">
 		${Badge({ status: epic, text: `Epic ${escapeHtml(epic)}` })}
 		${Badge({ status })}
 	</div>
-</div>`;
+</a>`;
 }

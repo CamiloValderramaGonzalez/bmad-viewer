@@ -3,7 +3,7 @@ import { escapeHtml } from '../utils/html-escape.js';
 /**
  * Render sidebar navigation tree.
  * Wiki lens: Modules > Groups > Items
- * Proyecto lens: Epics with stories + Artifacts section
+ * Project lens: Epics with stories + Artifacts section
  *
  * @param {{modules: Array, artifacts: Array, epics: Array}} props
  * @returns {string} HTML string
@@ -46,7 +46,7 @@ export function SidebarNav({ modules, artifacts, epics }) {
 		)
 		.join('\n');
 
-	// Proyecto sidebar: Sprint Dashboard link + Epics with stories + Artifacts
+	// Project sidebar: Sprint Dashboard link + Epics with stories + Artifacts
 	const epicsList = (epics || [])
 		.map(
 			(epic) => `
@@ -62,7 +62,7 @@ export function SidebarNav({ modules, artifacts, epics }) {
 					.map(
 						(story) =>
 							`<li class="sidebar-nav__item">
-						<a href="#proyecto/story/${escapeHtml(story.id)}" class="sidebar-nav__link" data-id="story/${escapeHtml(story.id)}">
+						<a href="#project/story/${escapeHtml(story.id)}" class="sidebar-nav__link" data-id="story/${escapeHtml(story.id)}">
 							<span class="sidebar-nav__status-dot sidebar-nav__status-dot--${escapeHtml(story.status)}"></span>
 							${escapeHtml(story.title)}
 						</a>
@@ -78,7 +78,7 @@ export function SidebarNav({ modules, artifacts, epics }) {
 		.map(
 			(art) => `
 		<li class="sidebar-nav__item">
-			<a href="#proyecto/${escapeHtml(art.id)}" class="sidebar-nav__link sidebar-nav__link--artifact" data-id="${escapeHtml(art.id)}">
+			<a href="#project/${escapeHtml(art.id)}" class="sidebar-nav__link sidebar-nav__link--artifact" data-id="${escapeHtml(art.id)}">
 				<span class="sidebar-nav__type-icon">${getArtifactIcon(art.name)}</span>
 				${escapeHtml(art.name || 'Untitled')}
 			</a>
@@ -93,8 +93,8 @@ export function SidebarNav({ modules, artifacts, epics }) {
 			${modulesList || '<li class="sidebar-nav__empty">No modules found</li>'}
 		</ul>
 	</div>
-	<div id="sidebar-proyecto" class="sidebar-nav__lens" hidden>
-		<a href="#proyecto" class="sidebar-nav__dashboard-link">
+	<div id="sidebar-project" class="sidebar-nav__lens" hidden>
+		<a href="#project" class="sidebar-nav__dashboard-link">
 			<span>&#128202;</span> Sprint Dashboard
 		</a>
 		${epicsList ? `<h2 class="sidebar-nav__heading">Epics</h2>

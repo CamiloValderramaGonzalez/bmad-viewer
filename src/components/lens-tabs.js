@@ -5,10 +5,10 @@
  */
 export function LensTabs({ activeTab }) {
 	const wikiActive = activeTab === 'wiki' ? ' lens-tabs__tab--active' : '';
-	const projectActive = activeTab === 'proyecto' ? ' lens-tabs__tab--active' : '';
+	const projectActive = activeTab === 'project' ? ' lens-tabs__tab--active' : '';
 
 	return `<div class="lens-tabs" role="tablist">
 	<button class="lens-tabs__tab${wikiActive}" role="tab" aria-selected="${activeTab === 'wiki'}" data-tab="wiki">&#128218; Wiki</button>
-	<button class="lens-tabs__tab${projectActive}" role="tab" aria-selected="${activeTab === 'proyecto'}" data-tab="proyecto">&#128203; Proyecto</button>
+	<button class="lens-tabs__tab${projectActive}" role="tab" aria-selected="${activeTab === 'project'}" data-tab="project">&#128203; Project</button>
 </div>`;
 }

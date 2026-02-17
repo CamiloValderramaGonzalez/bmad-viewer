@@ -22,13 +22,13 @@
 
 		// Switch views
 		if (wikiView) wikiView.hidden = route.view !== 'wiki';
-		if (projectView) projectView.hidden = route.view !== 'proyecto';
+		if (projectView) projectView.hidden = route.view !== 'project';
 
 		// Switch sidebar lens
 		var sidebarWiki = document.getElementById('sidebar-wiki');
-		var sidebarProyecto = document.getElementById('sidebar-proyecto');
+		var sidebarProject = document.getElementById('sidebar-project');
 		if (sidebarWiki) sidebarWiki.hidden = route.view !== 'wiki';
-		if (sidebarProyecto) sidebarProyecto.hidden = route.view !== 'proyecto';
+		if (sidebarProject) sidebarProject.hidden = route.view !== 'project';
 
 		// Update tabs
 		tabs.forEach(function (tab) {
@@ -41,10 +41,10 @@
 		if (route.id) {
 			if (route.view === 'wiki') {
 				loadWikiContent(route.id);
-			} else if (route.view === 'proyecto') {
+			} else if (route.view === 'project') {
 				loadProjectContent(route.id);
 			}
-		} else if (route.view === 'proyecto') {
+		} else if (route.view === 'project') {
 			// Show dashboard when no specific artifact is selected
 			showProjectDashboard();
 		}
@@ -97,7 +97,7 @@
 		// Build breadcrumb
 		if (breadcrumb) {
 			breadcrumb.innerHTML =
-				'<a href="#proyecto" class="breadcrumb__link">Proyecto</a>' +
+				'<a href="#project" class="breadcrumb__link">Project</a>' +
 				' <span class="breadcrumb__sep">&rsaquo;</span> ' +
 				'<span class="breadcrumb__current">' + escapeText(item.name) + '</span>';
 		}
@@ -225,7 +225,7 @@
 		for (var type in grouped) {
 			html += '<div class="search-modal__group-label">' + escapeText(type.charAt(0).toUpperCase() + type.slice(1)) + 's</div>';
 			grouped[type].forEach(function (m) {
-				var view = m.id.startsWith('artifact/') || m.id.startsWith('story/') ? 'proyecto' : 'wiki';
+				var view = m.id.startsWith('artifact/') || m.id.startsWith('story/') ? 'project' : 'wiki';
 				html +=
 					'<a class="search-modal__result" href="#' + view + '/' + m.id + '">' +
 					'<span class="search-modal__result-title">' + escapeText(m.item.name) + '</span>' +

@@ -1,6 +1,6 @@
 {
 	"name": "bmad-viewer",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Visual dashboard for BMAD (Boring Maintainable Agile Development) projects. Wiki browser + sprint status viewer with live reload.",
 	"type": "module",
 	"bin": {

@@ -1,6 +1,6 @@
 /**
  * Parse hash route from URL.
- * @param {string} hash - e.g., '#wiki', '#proyecto', '#wiki/agent-1'
+ * @param {string} hash - e.g., '#wiki', '#project', '#wiki/agent-1'
  * @returns {{view: string, id: string|null}}
  */
 export function parseHash(hash) {
@@ -30,7 +30,7 @@ function onHashChange() {
 	var tabs = document.querySelectorAll('.lens-tabs__tab');
 
 	if (wikiView) wikiView.hidden = route.view !== 'wiki';
-	if (projectView) projectView.hidden = route.view !== 'proyecto';
+	if (projectView) projectView.hidden = route.view !== 'project';
 
 	tabs.forEach(function(tab) {
 		var isActive = tab.dataset.tab === route.view;
