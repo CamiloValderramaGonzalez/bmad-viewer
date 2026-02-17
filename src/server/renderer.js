@@ -31,17 +31,8 @@ export function renderDashboard(dataModel) {
 			<h1>${escapeHtml(config.project_name || 'BMAD')} ${config.project_name ? '- bmad-viewer' : 'Viewer'}</h1>
 			${config.projectContextHtml
 				? `<div class="project-intro">${config.projectContextHtml}</div>`
-				: `<p>Select an item from the sidebar to view its content, or use <kbd>Ctrl+K</kbd> to search.</p>`}
-			<h2>Modules</h2>
-			<div class="wiki-overview">
-				${wiki.modules.map((mod) => `
-				<div class="wiki-overview__module">
-					<h3>${escapeHtml(mod.name)}</h3>
-					<ul>
-						${mod.groups.map((g) => `<li>${escapeHtml(g.name)}: ${g.items.length} items</li>`).join('')}
-					</ul>
-				</div>`).join('')}
-			</div>
+				: ''}
+			<p>Select an item from the sidebar to view its content, or use <kbd>Ctrl+K</kbd> to search.</p>
 		</div>
 	</main>
 </div>`;
@@ -86,6 +77,7 @@ export function renderDashboard(dataModel) {
 		activeTab: 'wiki',
 		warnings,
 		contentMapJson: JSON.stringify(contentMap),
+		projectName: config.project_name,
 	});
 }
 

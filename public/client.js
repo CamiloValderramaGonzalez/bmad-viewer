@@ -3,6 +3,8 @@
 	'use strict';
 
 	var contentMap = window.__BMAD_CONTENT__ || {};
+	var wikiWelcomeHtml = '';
+	var wikiBreadcrumbHtml = '';
 
 	/* ── Hash Router ── */
 	function parseHash() {
@@ -44,6 +46,9 @@
 			} else if (route.view === 'project') {
 				loadProjectContent(route.id);
 			}
+		} else if (route.view === 'wiki') {
+			// Show welcome page when no specific item is selected
+			showWikiWelcome();
 		} else if (route.view === 'project') {
 			// Show dashboard when no specific artifact is selected
 			showProjectDashboard();
@@ -101,6 +106,13 @@
 				' <span class="breadcrumb__sep">&rsaquo;</span> ' +
 				'<span class="breadcrumb__current">' + escapeText(item.name) + '</span>';
 		}
+	}
+
+	function showWikiWelcome() {
+		var contentBody = document.getElementById('wiki-content-body');
+		var breadcrumb = document.getElementById('wiki-breadcrumb');
+		if (contentBody && wikiWelcomeHtml) contentBody.innerHTML = wikiWelcomeHtml;
+		if (breadcrumb) breadcrumb.innerHTML = wikiBreadcrumbHtml;
 	}
 
 	function showProjectDashboard() {
@@ -307,6 +319,12 @@
 
 	/* ── Init ── */
 	document.addEventListener('DOMContentLoaded', function () {
+		// Save welcome page HTML for restoring later
+		var wikiBody = document.getElementById('wiki-content-body');
+		if (wikiBody) wikiWelcomeHtml = wikiBody.innerHTML;
+		var wikiBc = document.getElementById('wiki-breadcrumb');
+		if (wikiBc) wikiBreadcrumbHtml = wikiBc.innerHTML;
+
 		// Hash router
 		if (!location.hash) location.hash = '#wiki';
 		onHashChange();

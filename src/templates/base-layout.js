@@ -8,7 +8,7 @@ import { SearchModal } from '../components/search-modal.js';
  * @param {{title: string, sidebar: string, content: string, activeTab: string, warnings: Array, contentMapJson: string}} props
  * @returns {string} Complete HTML document
  */
-export function BaseLayout({ title, sidebar, content, activeTab, warnings, contentMapJson }) {
+export function BaseLayout({ title, sidebar, content, activeTab, warnings, contentMapJson, projectName }) {
 	const warningBanner =
 		warnings && warnings.length > 0
 			? `<div class="warning-banner" role="alert">
@@ -27,7 +27,7 @@ export function BaseLayout({ title, sidebar, content, activeTab, warnings, conte
 </head>
 <body>
 	<div class="sticky-top">
-	${HeaderBar()}
+	${HeaderBar({ projectName })}
 	${LensTabs({ activeTab: activeTab || 'wiki' })}
 	</div>
 	${warningBanner}

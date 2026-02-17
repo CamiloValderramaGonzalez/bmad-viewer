@@ -1,13 +1,17 @@
+import { escapeHtml } from '../utils/html-escape.js';
+
 /**
- * Render the header bar with logo, centered search trigger, and theme toggle.
+ * Render the header bar with project name, centered search trigger, and theme toggle.
+ * @param {{projectName: string}} props
  * @returns {string} HTML string
  */
-export function HeaderBar() {
+export function HeaderBar({ projectName }) {
+	const displayName = projectName || 'bmad-viewer';
 	return `<header class="header-bar" role="banner">
-	<div class="header-bar__logo">
+	<a href="#wiki" class="header-bar__logo" id="home-link" title="Back to home">
 		<span class="header-bar__icon">&#9635;</span>
-		<span class="header-bar__title">bmad-viewer</span>
-	</div>
+		<span class="header-bar__title">${escapeHtml(displayName)}</span>
+	</a>
 	<button class="header-bar__search" id="search-trigger" aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">
 		<svg class="header-bar__search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 		<span class="header-bar__search-text">Search...</span>
