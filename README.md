@@ -17,11 +17,21 @@ bmad-viewer fixes all of that with a single command.
 
 ## Quick start
 
+**From Claude Code** — just type:
+
+```
+/viewer
+```
+
+The package includes a `/viewer` slash command that auto-installs as a skill. Claude launches the dashboard for you in the background.
+
+**From terminal:**
+
 ```bash
 npx bmad-viewer
 ```
 
-That's it. Auto-detects your `_bmad/` folder, opens your browser, dashboard ready.
+Auto-detects your `_bmad/` folder, opens your browser, dashboard ready.
 
 ## What you get
 
