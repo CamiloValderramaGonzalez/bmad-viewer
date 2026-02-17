@@ -1,6 +1,6 @@
 {
 	"name": "bmad-viewer",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"description": "Visual dashboard for BMAD (Boring Maintainable Agile Development) projects. Wiki browser + sprint status viewer with live reload.",
 	"type": "module",
 	"bin": {
@@ -43,6 +43,8 @@
 	},
 	"keywords": [
 		"bmad",
+		"bmad-method",
+		"bmad-viewer",
 		"agile",
 		"dashboard",
 		"cli",
@@ -51,8 +53,10 @@
 		"sprint",
 		"kanban",
 		"markdown",
-		"project-management"
+		"project-management",
+		"claude-code",
+		"ai-development"
 	],
-	"author": "",
+	"author": "Camilo Valderrama",
 	"license": "MIT"
 }
