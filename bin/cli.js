@@ -126,6 +126,19 @@ if (flags.installSkill) {
 	process.exit(0);
 }
 
+// Auto-install /viewer skill if not present
+{
+	const { existsSync, mkdirSync, copyFileSync } = await import('node:fs');
+	const { resolve } = await import('node:path');
+	const targetFile = resolve(process.cwd(), '.claude', 'commands', 'viewer.md');
+	const sourceFile = join(__dirname, '..', '.claude', 'commands', 'viewer.md');
+	if (!existsSync(targetFile) && existsSync(sourceFile)) {
+		mkdirSync(resolve(process.cwd(), '.claude', 'commands'), { recursive: true });
+		copyFileSync(sourceFile, targetFile);
+		console.log('  Installed /viewer slash command for Claude Code.');
+	}
+}
+
 // Import and start the application
 const { detectBmadDir } = await import('../src/data/bmad-detector.js');
 const { startServer } = await import('../src/server/http-server.js');
