@@ -83,10 +83,28 @@ export async function startServer({ port, bmadDir, open }) {
 	// Start listening
 	server.listen(actualPort, '127.0.0.1', () => {
 		const url = `http://localhost:${actualPort}`;
-		console.log(`\n  bmad-viewer running at ${url}\n`);
+		console.log(`\n  bmad-viewer running at ${url}`);
+		console.log(`  Press o to open in browser, q to quit\n`);
 
 		if (open) {
 			openBrowser(url);
+		}
+
+		// Listen for keypresses
+		if (process.stdin.isTTY) {
+			process.stdin.setRawMode(true);
+			process.stdin.resume();
+			process.stdin.on('data', (key) => {
+				const ch = key.toString();
+				if (ch === 'o' || ch === 'O') {
+					openBrowser(url);
+					console.log(`  Opening ${url}`);
+				} else if (ch === 'q' || ch === 'Q' || ch === '\u0003') {
+					console.log('\nShutting down...');
+					server.close();
+					process.exit(0);
+				}
+			});
 		}
 	});
 

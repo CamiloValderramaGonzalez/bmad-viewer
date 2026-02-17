@@ -44,6 +44,9 @@ for (let i = 0; i < args.length; i++) {
 		case '--no-open':
 			flags.noOpen = true;
 			break;
+		case '--install-skill':
+			flags.installSkill = true;
+			break;
 		default:
 			console.error(`Unknown flag: ${args[i]}`);
 			console.error('Run "bmad-viewer --help" for usage information.');
@@ -71,6 +74,7 @@ Options:
   --path <dir>         Path to BMAD project (default: auto-detect _bmad/)
   --output, -o <dir>   Generate static HTML files (no server)
   --no-open            Don't open browser automatically
+  --install-skill      Install /viewer slash command for Claude Code
   --version, -v        Show version number
   --help, -h           Show this help message
 
@@ -79,6 +83,7 @@ Examples:
   npx bmad-viewer --port 8080              Use specific port
   npx bmad-viewer --path ./my-project      Specify project path
   npx bmad-viewer --output ./docs          Generate static files
+  npx bmad-viewer --install-skill          Install Claude Code slash command
 `);
 	process.exit(0);
 }
@@ -98,6 +103,27 @@ if (flags.path !== null) {
 		console.error(`Error: Path does not exist or is not a directory: ${flags.path}`);
 		process.exit(1);
 	}
+}
+
+// --install-skill
+if (flags.installSkill) {
+	const { existsSync, mkdirSync, copyFileSync } = await import('node:fs');
+	const { resolve } = await import('node:path');
+
+	const targetDir = resolve(process.cwd(), '.claude', 'commands');
+	const targetFile = join(targetDir, 'viewer.md');
+	const sourceFile = join(__dirname, '..', '.claude', 'commands', 'viewer.md');
+
+	if (!existsSync(sourceFile)) {
+		console.error('Error: Skill source file not found in bmad-viewer package.');
+		process.exit(1);
+	}
+
+	mkdirSync(targetDir, { recursive: true });
+	copyFileSync(sourceFile, targetFile);
+	console.log(`\n  Installed /viewer slash command to ${targetFile}`);
+	console.log('  You can now use /viewer in Claude Code to launch bmad-viewer.\n');
+	process.exit(0);
 }
 
 // Import and start the application
