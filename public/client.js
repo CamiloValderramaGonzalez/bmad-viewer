@@ -5,6 +5,7 @@
 	var contentMap = window.__BMAD_CONTENT__ || {};
 	var wikiWelcomeHtml = '';
 	var wikiBreadcrumbHtml = '';
+	var pendingHighlight = null;
 
 	/* ── Hash Router ── */
 	function parseHash() {
@@ -82,6 +83,11 @@
 			});
 			breadcrumb.innerHTML = crumbs.join(' <span class="breadcrumb__sep">&rsaquo;</span> ');
 		}
+
+		if (pendingHighlight) {
+			highlightAndScroll(contentBody, pendingHighlight);
+			pendingHighlight = null;
+		}
 	}
 
 	function loadProjectContent(id) {
@@ -105,6 +111,62 @@
 				'<a href="#project" class="breadcrumb__link">Project</a>' +
 				' <span class="breadcrumb__sep">&rsaquo;</span> ' +
 				'<span class="breadcrumb__current">' + escapeText(item.name) + '</span>';
+		}
+
+		if (pendingHighlight) {
+			highlightAndScroll(contentBody, pendingHighlight);
+			pendingHighlight = null;
+		}
+	}
+
+	function highlightAndScroll(container, query) {
+		var walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+		var q = query.toLowerCase();
+		var firstMark = null;
+
+		var nodesToProcess = [];
+		while (walker.nextNode()) {
+			var node = walker.currentNode;
+			if (node.nodeValue && node.nodeValue.toLowerCase().includes(q)) {
+				nodesToProcess.push(node);
+			}
+		}
+
+		for (var i = 0; i < nodesToProcess.length; i++) {
+			var textNode = nodesToProcess[i];
+			var text = textNode.nodeValue;
+			var idx = text.toLowerCase().indexOf(q);
+			if (idx === -1) continue;
+
+			var before = text.substring(0, idx);
+			var match = text.substring(idx, idx + query.length);
+			var after = text.substring(idx + query.length);
+
+			var mark = document.createElement('mark');
+			mark.className = 'search-highlight';
+			mark.textContent = match;
+
+			var parent = textNode.parentNode;
+			if (before) parent.insertBefore(document.createTextNode(before), textNode);
+			parent.insertBefore(mark, textNode);
+			if (after) parent.insertBefore(document.createTextNode(after), textNode);
+			parent.removeChild(textNode);
+
+			if (!firstMark) firstMark = mark;
+		}
+
+		if (firstMark) {
+			setTimeout(function () {
+				firstMark.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			}, 50);
+
+			// Clear highlights after 4 seconds
+			setTimeout(function () {
+				container.querySelectorAll('mark.search-highlight').forEach(function (el) {
+					var txt = document.createTextNode(el.textContent);
+					el.parentNode.replaceChild(txt, el);
+				});
+			}, 4000);
 		}
 	}
 
@@ -190,6 +252,18 @@
 		if (modal) modal.hidden = true;
 	}
 
+	// Cache stripped text for content search
+	var textCache = {};
+	function getPlainText(item) {
+		if (!item._cacheKey) item._cacheKey = item.name + '|' + item.type;
+		if (textCache[item._cacheKey] !== undefined) return textCache[item._cacheKey];
+		var tmp = document.createElement('div');
+		tmp.innerHTML = item.html || '';
+		var text = (tmp.textContent || tmp.innerText || '').toLowerCase();
+		textCache[item._cacheKey] = text;
+		return text;
+	}
+
 	function handleSearch(query) {
 		var results = document.getElementById('search-results');
 		if (!results) return;
@@ -202,20 +276,21 @@
 		var q = query.toLowerCase();
 		var matches = [];
 
-		// Search through content map
+		// Search through content map — name, type, module, group, and body content
 		for (var id in contentMap) {
 			var item = contentMap[id];
 			var nameMatch = (item.name || '').toLowerCase().includes(q);
 			var typeMatch = (item.type || '').toLowerCase().includes(q);
 			var moduleMatch = (item.module || '').toLowerCase().includes(q);
 			var groupMatch = (item.group || '').toLowerCase().includes(q);
+			var contentMatch = !nameMatch && !typeMatch && !moduleMatch && !groupMatch && getPlainText(item).includes(q);
 
-			if (nameMatch || typeMatch || moduleMatch || groupMatch) {
-				matches.push({ id: id, item: item, score: nameMatch ? 1 : 0 });
+			if (nameMatch || typeMatch || moduleMatch || groupMatch || contentMatch) {
+				matches.push({ id: id, item: item, score: nameMatch ? 2 : (contentMatch ? 0 : 1), contentMatch: contentMatch });
 			}
 		}
 
-		// Sort by name match first
+		// Sort: name matches first, then metadata, then content
 		matches.sort(function (a, b) { return b.score - a.score; });
 
 		if (matches.length === 0) {
@@ -233,15 +308,45 @@
 			grouped[type].push(m);
 		});
 
+		var categoryLabels = {
+			'planning': 'Planning', 'research': 'Research', 'analysis': 'Analysis',
+			'test-arch': 'Test Architecture', 'cis': 'CIS Sessions',
+			'bmb-creation': 'BMB Creations', 'diagram': 'Diagrams',
+			'story': 'Stories', 'agent': 'Agents', 'workflow': 'Workflows',
+			'other': 'Other'
+		};
+
 		var html = '';
 		for (var type in grouped) {
-			html += '<div class="search-modal__group-label">' + escapeText(type.charAt(0).toUpperCase() + type.slice(1)) + 's</div>';
+			var groupLabel = categoryLabels[type] || (type.charAt(0).toUpperCase() + type.slice(1) + 's');
+			html += '<div class="search-modal__group-label">' + escapeText(groupLabel) + '</div>';
 			grouped[type].forEach(function (m) {
 				var view = m.id.startsWith('artifact/') || m.id.startsWith('story/') ? 'project' : 'wiki';
+				var subtitle = m.item.module
+					? (m.item.module + (m.item.group ? ' > ' + m.item.group : ''))
+					: (categoryLabels[m.item.type] || m.item.type || '');
+				var snippet = '';
+				if (m.contentMatch) {
+					var text = getPlainText(m.item);
+					var idx = text.indexOf(q);
+					if (idx !== -1) {
+						var start = Math.max(0, idx - 30);
+						var end = Math.min(text.length, idx + q.length + 50);
+						var raw = text.substring(start, end).replace(/\s+/g, ' ');
+						snippet = '<span class="search-modal__result-snippet">' +
+							(start > 0 ? '...' : '') +
+							escapeText(raw.substring(0, idx - start)) +
+							'<mark>' + escapeText(raw.substring(idx - start, idx - start + q.length)) + '</mark>' +
+							escapeText(raw.substring(idx - start + q.length)) +
+							(end < text.length ? '...' : '') +
+							'</span>';
+					}
+				}
 				html +=
-					'<a class="search-modal__result" href="#' + view + '/' + m.id + '">' +
+					'<a class="search-modal__result" href="#' + view + '/' + m.id + '"' + (m.contentMatch ? ' data-content-match="1"' : '') + '>' +
 					'<span class="search-modal__result-title">' + escapeText(m.item.name) + '</span>' +
-					'<span class="search-modal__result-type">' + escapeText((m.item.module || '') + (m.item.group ? ' > ' + m.item.group : '')) + '</span>' +
+					'<span class="search-modal__result-type">' + escapeText(subtitle) + '</span>' +
+					snippet +
 					'</a>';
 			});
 		}
@@ -367,7 +472,13 @@
 		if (searchResults) {
 			searchResults.addEventListener('click', function (e) {
 				var result = e.target.closest('.search-modal__result');
-				if (result) closeSearch();
+				if (result) {
+					if (result.dataset.contentMatch) {
+						var input = document.getElementById('search-input');
+						pendingHighlight = input ? input.value : null;
+					}
+					closeSearch();
+				}
 			});
 		}
 

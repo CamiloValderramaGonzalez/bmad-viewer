@@ -18,6 +18,7 @@ export function renderDashboard(dataModel) {
 		modules: wiki.modules,
 		artifacts: project.artifacts,
 		epics: project.epics,
+		artifactGroups: project.artifactGroups,
 	});
 
 	// Build content data JSON for client-side rendering

@@ -1,14 +1,25 @@
 import { escapeHtml } from '../utils/html-escape.js';
 
+const CATEGORY_ORDER = [
+	{ key: 'planning', label: 'Planning', icon: '&#128203;' },
+	{ key: 'research', label: 'Research', icon: '&#128270;' },
+	{ key: 'analysis', label: 'Analysis', icon: '&#128161;' },
+	{ key: 'test-arch', label: 'Test Architecture', icon: '&#128295;' },
+	{ key: 'cis', label: 'CIS Sessions', icon: '&#10024;' },
+	{ key: 'bmb-creation', label: 'BMB Creations', icon: '&#128296;' },
+	{ key: 'diagram', label: 'Diagrams', icon: '&#128202;' },
+	{ key: 'other', label: 'Other', icon: '&#128196;' },
+];
+
 /**
  * Render sidebar navigation tree.
  * Wiki lens: Modules > Groups > Items
- * Project lens: Epics with stories + Artifacts section
+ * Project lens: Epics with stories + Artifact categories
  *
- * @param {{modules: Array, artifacts: Array, epics: Array}} props
+ * @param {{modules: Array, artifacts: Array, epics: Array, artifactGroups: object}} props
  * @returns {string} HTML string
  */
-export function SidebarNav({ modules, artifacts, epics }) {
+export function SidebarNav({ modules, artifacts, epics, artifactGroups }) {
 	// Wiki sidebar content
 	const modulesList = (modules || [])
 		.map(
@@ -46,7 +57,7 @@ export function SidebarNav({ modules, artifacts, epics }) {
 		)
 		.join('\n');
 
-	// Project sidebar: Sprint Dashboard link + Epics with stories + Artifacts
+	// Project sidebar: Sprint Dashboard link + Epics with stories + Categorized Artifacts
 	const epicsList = (epics || [])
 		.map(
 			(epic) => `
@@ -74,16 +85,36 @@ export function SidebarNav({ modules, artifacts, epics }) {
 		)
 		.join('\n');
 
-	const artifactsList = (artifacts || [])
-		.map(
-			(art) => `
-		<li class="sidebar-nav__item">
-			<a href="#project/${escapeHtml(art.id)}" class="sidebar-nav__link sidebar-nav__link--artifact" data-id="${escapeHtml(art.id)}">
-				<span class="sidebar-nav__type-icon">${getArtifactIcon(art.name)}</span>
-				${escapeHtml(art.name || 'Untitled')}
-			</a>
-		</li>`,
-		)
+	// Build categorized artifact sections
+	const groups = artifactGroups || {};
+	const categorySections = CATEGORY_ORDER
+		.filter((cat) => groups[cat.key] && groups[cat.key].length > 0)
+		.map((cat) => {
+			const items = groups[cat.key];
+			const itemsHtml = items
+				.map(
+					(art) => `
+				<li class="sidebar-nav__item">
+					<a href="#project/${escapeHtml(art.id)}" class="sidebar-nav__link sidebar-nav__link--artifact" data-id="${escapeHtml(art.id)}">
+						<span class="sidebar-nav__type-icon">${getArtifactIcon(art.name, cat.key)}</span>
+						${escapeHtml(art.name || 'Untitled')}
+					</a>
+				</li>`,
+				)
+				.join('\n');
+
+			return `
+		<li class="sidebar-nav__module">
+			<button class="sidebar-nav__toggle" aria-expanded="false">
+				<span class="sidebar-nav__arrow">&#9656;</span>
+				<span class="sidebar-nav__type-icon">${cat.icon}</span>
+				${escapeHtml(cat.label)} <span class="sidebar-nav__count">${items.length}</span>
+			</button>
+			<ul class="sidebar-nav__items" hidden>
+				${itemsHtml}
+			</ul>
+		</li>`;
+		})
 		.join('\n');
 
 	return `<nav class="sidebar-nav" aria-label="BMAD Navigation">
@@ -99,8 +130,8 @@ export function SidebarNav({ modules, artifacts, epics }) {
 		</a>
 		${epicsList ? `<h2 class="sidebar-nav__heading">Epics</h2>
 		<ul class="sidebar-nav__list">${epicsList}</ul>` : ''}
-		${artifactsList ? `<h2 class="sidebar-nav__heading">Artifacts</h2>
-		<ul class="sidebar-nav__list">${artifactsList}</ul>` : ''}
+		${categorySections ? `<h2 class="sidebar-nav__heading">Artifacts</h2>
+		<ul class="sidebar-nav__list">${categorySections}</ul>` : ''}
 	</div>
 </nav>`;
 }
@@ -118,6 +149,12 @@ function getTypeIcon(type) {
 		case 'story': return '&#128203;';
 		case 'data': return '&#128202;';
 		case 'testarch': return '&#128295;';
+		case 'research': return '&#128270;';
+		case 'analysis': return '&#128161;';
+		case 'test-arch': return '&#128295;';
+		case 'cis': return '&#10024;';
+		case 'bmb-creation': return '&#128296;';
+		case 'diagram': return '&#128202;';
 		default: return '&#128196;';
 	}
 }
@@ -134,9 +171,19 @@ function getEpicStatusIcon(status) {
 }
 
 /**
- * Get icon for artifact by name.
+ * Get icon for artifact by name and category.
  */
-function getArtifactIcon(name) {
+function getArtifactIcon(name, category) {
+	if (category) {
+		switch (category) {
+			case 'research': return '&#128270;';
+			case 'analysis': return '&#128161;';
+			case 'test-arch': return '&#128295;';
+			case 'cis': return '&#10024;';
+			case 'bmb-creation': return '&#128296;';
+			case 'diagram': return '&#128202;';
+		}
+	}
 	const lower = (name || '').toLowerCase();
 	if (lower.includes('prd')) return '&#128220;';
 	if (lower.includes('architecture')) return '&#127959;';

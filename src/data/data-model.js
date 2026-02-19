@@ -1,5 +1,5 @@
 import { readdirSync, existsSync, statSync, readFileSync } from 'node:fs';
-import { join, extname, basename } from 'node:path';
+import { join, extname, basename, relative } from 'node:path';
 import { parseYaml } from '../parsers/parse-yaml.js';
 import { parseMarkdownContent } from '../parsers/parse-markdown.js';
 import { ErrorAggregator } from '../utils/error-aggregator.js';
@@ -257,22 +257,27 @@ function buildProjectData(outputPath, aggregator) {
 		}
 	}
 
-	// Scan planning artifacts
+	// Scan planning artifacts (recursive to catch research/ subdir, and include .html files)
 	const planningDir = join(outputPath, 'planning-artifacts');
 	if (existsSync(planningDir)) {
-		const files = scanDirectMarkdownFiles(planningDir);
+		const files = scanFilesRecursive(planningDir, ['.md', '.html']);
 		for (const file of files) {
-			const name = basename(file, '.md');
-			const content = readMarkdownSafe(file, aggregator);
+			const ext = extname(file).toLowerCase();
+			const name = basename(file, ext);
+			const content = ext === '.html'
+				? readHtmlSafe(file)
+				: readMarkdownSafe(file, aggregator);
+			const type = categorizeArtifact(file, outputPath);
 			project.artifacts.push({
 				id: `artifact/${name}`,
 				name: formatName(name),
 				path: file,
+				type,
 				...content,
 			});
 
 			// Parse stories from epics.md
-			if (name === 'epics' && content.raw) {
+			if (name === 'epics' && ext === '.md' && content.raw) {
 				const storyContents = parseStoriesFromEpics(content.raw, aggregator);
 				project.storyContents = storyContents;
 			}
@@ -282,7 +287,6 @@ function buildProjectData(outputPath, aggregator) {
 	// Scan implementation artifact story files (direct .md files in impl dir + stories/ subdir)
 	const implDir = join(outputPath, 'implementation-artifacts');
 	if (existsSync(implDir)) {
-		// Scan direct .md files in implementation-artifacts (story files live here)
 		const implFiles = scanDirectMarkdownFiles(implDir);
 		for (const file of implFiles) {
 			const name = basename(file, '.md');
@@ -296,7 +300,6 @@ function buildProjectData(outputPath, aggregator) {
 			});
 		}
 
-		// Also check stories/ subdirectory if it exists
 		const storyDir = join(implDir, 'stories');
 		if (existsSync(storyDir)) {
 			const files = scanDirectMarkdownFiles(storyDir);
@@ -312,6 +315,84 @@ function buildProjectData(outputPath, aggregator) {
 				});
 			}
 		}
+	}
+
+	// Scan analysis/ directory
+	const analysisDir = join(outputPath, 'analysis');
+	if (existsSync(analysisDir)) {
+		const files = scanDirectFiles(analysisDir, ['.md']);
+		for (const file of files) {
+			const name = basename(file, '.md');
+			const content = readMarkdownSafe(file, aggregator);
+			project.artifacts.push({
+				id: `artifact/${name}`,
+				name: formatName(name),
+				path: file,
+				type: 'analysis',
+				...content,
+			});
+		}
+	}
+
+	// Scan excalidraw-diagrams/ directory
+	const excalidrawDir = join(outputPath, 'excalidraw-diagrams');
+	if (existsSync(excalidrawDir)) {
+		const files = scanDirectFiles(excalidrawDir, ['.excalidraw']);
+		for (const file of files) {
+			const name = basename(file, '.excalidraw');
+			const content = readExcalidrawSafe(file);
+			project.artifacts.push({
+				id: `artifact/${name}`,
+				name: formatName(name),
+				path: file,
+				type: 'diagram',
+				...content,
+			});
+		}
+	}
+
+	// Scan bmb-creations/ directory (recursive, .md + .yaml)
+	const bmbDir = join(outputPath, 'bmb-creations');
+	if (existsSync(bmbDir)) {
+		const files = scanFilesRecursive(bmbDir, ['.md', '.yaml']);
+		for (const file of files) {
+			const ext = extname(file).toLowerCase();
+			const name = basename(file, ext);
+			const content = ext === '.yaml'
+				? readYamlSafe(file)
+				: readMarkdownSafe(file, aggregator);
+			project.artifacts.push({
+				id: `artifact/${name}`,
+				name: formatName(name),
+				path: file,
+				type: 'bmb-creation',
+				...content,
+			});
+		}
+	}
+
+	// Scan root-level files in _bmad-output/ (CIS sessions, test-arch outputs, etc.)
+	const rootFiles = scanDirectFiles(outputPath, ['.md']);
+	for (const file of rootFiles) {
+		const name = basename(file, '.md');
+		const content = readMarkdownSafe(file, aggregator);
+		const type = categorizeArtifact(file, outputPath);
+		project.artifacts.push({
+			id: `artifact/${name}`,
+			name: formatName(name),
+			path: file,
+			type,
+			...content,
+		});
+	}
+
+	// Build artifactGroups by category (excluding stories which are shown under epics)
+	project.artifactGroups = {};
+	for (const art of project.artifacts) {
+		if (art.type === 'story') continue;
+		const cat = art.type || 'other';
+		if (!project.artifactGroups[cat]) project.artifactGroups[cat] = [];
+		project.artifactGroups[cat].push(art);
 	}
 
 	return project;
@@ -446,6 +527,152 @@ function scanDirectMarkdownFiles(dir) {
 		// Ignore
 	}
 	return files.sort();
+}
+
+/**
+ * Scan a directory for direct files matching given extensions (non-recursive).
+ */
+function scanDirectFiles(dir, extensions) {
+	const files = [];
+	try {
+		const entries = readdirSync(dir, { withFileTypes: true });
+		for (const entry of entries) {
+			if (entry.isFile() && extensions.includes(extname(entry.name).toLowerCase())) {
+				files.push(join(dir, entry.name));
+			}
+		}
+	} catch {
+		// Ignore
+	}
+	return files.sort();
+}
+
+/**
+ * Recursively scan a directory for files matching given extensions.
+ */
+function scanFilesRecursive(dir, extensions) {
+	const files = [];
+	try {
+		const entries = readdirSync(dir, { withFileTypes: true });
+		for (const entry of entries) {
+			const fullPath = join(dir, entry.name);
+			if (entry.isDirectory()) {
+				files.push(...scanFilesRecursive(fullPath, extensions));
+			} else if (entry.isFile() && extensions.includes(extname(entry.name).toLowerCase())) {
+				files.push(fullPath);
+			}
+		}
+	} catch {
+		// Ignore
+	}
+	return files.sort();
+}
+
+/**
+ * Read an Excalidraw file and produce an HTML viewer using the Excalidraw React component via CDN.
+ */
+function readExcalidrawSafe(filePath) {
+	try {
+		const raw = readFileSync(filePath, 'utf8');
+		const sceneData = JSON.parse(raw);
+
+		// Escape the JSON for safe embedding in HTML
+		const escapedJson = JSON.stringify(sceneData)
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+
+		const html = `<div class="excalidraw-viewer" style="width:100%;height:70vh;border:1px solid var(--border-color,#ddd);border-radius:8px;overflow:hidden;">
+<iframe style="width:100%;height:100%;border:none;" srcdoc="<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body, #root { width:100%; height:100%; }
+  .excalidraw .App-menu_top .buttonList { display:none; }
+</style>
+</head>
+<body>
+<div id='root'></div>
+<script src='https://unpkg.com/react@18/umd/react.production.min.js'><\/script>
+<script src='https://unpkg.com/react-dom@18/umd/react-dom.production.min.js'><\/script>
+<script src='https://unpkg.com/@excalidraw/excalidraw/dist/excalidraw.production.min.js'><\/script>
+<script>
+  var scene = JSON.parse(decodeURIComponent(&quot;${encodeURIComponent(JSON.stringify(sceneData))}&quot;));
+  var App = function() {
+    return React.createElement(ExcalidrawLib.Excalidraw, {
+      initialData: { elements: scene.elements || [], appState: { viewBackgroundColor: scene.appState?.viewBackgroundColor || '#ffffff', theme: 'light' }, files: scene.files || {} },
+      viewModeEnabled: true,
+      zenModeEnabled: true,
+      gridModeEnabled: false,
+      UIOptions: { canvasActions: { changeViewBackgroundColor: false, clearCanvas: false, export: false, loadScene: false, saveToActiveFile: false, toggleTheme: false, saveAsImage: false } }
+    });
+  };
+  ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+<\/script>
+</body>
+</html>"></iframe></div>`;
+
+		return { html, frontmatter: null, raw };
+	} catch {
+		return { html: '<p>Error loading Excalidraw file</p>', frontmatter: null, raw: '' };
+	}
+}
+
+/**
+ * Read an HTML file and embed it in an isolated iframe.
+ */
+function readHtmlSafe(filePath) {
+	try {
+		const raw = readFileSync(filePath, 'utf8');
+		// Escape for srcdoc attribute
+		const escaped = raw
+			.replace(/&/g, '&amp;')
+			.replace(/"/g, '&quot;');
+		const html = `<div class="html-artifact-viewer" style="width:100%;height:80vh;border:1px solid var(--border-color,#ddd);border-radius:8px;overflow:hidden;">
+<iframe style="width:100%;height:100%;border:none;" srcdoc="${escaped}"></iframe></div>`;
+		return { html, frontmatter: null, raw };
+	} catch {
+		return { html: '<p>Error loading HTML file</p>', frontmatter: null, raw: '' };
+	}
+}
+
+/**
+ * Read a YAML file and render it as formatted code block.
+ */
+function readYamlSafe(filePath) {
+	try {
+		const raw = readFileSync(filePath, 'utf8');
+		const escaped = raw.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		const html = `<pre><code class="language-yaml">${escaped}</code></pre>`;
+		return { html, frontmatter: null, raw };
+	} catch {
+		return { html: '<p>Error loading YAML file</p>', frontmatter: null, raw: '' };
+	}
+}
+
+/**
+ * Categorize an artifact based on its path relative to _bmad-output.
+ */
+function categorizeArtifact(filePath, outputPath) {
+	const rel = relative(outputPath, filePath).replace(/\\/g, '/');
+
+	if (rel.startsWith('planning-artifacts/research/')) return 'research';
+	if (rel.startsWith('planning-artifacts/')) return 'planning';
+	if (rel.startsWith('implementation-artifacts/')) return 'story';
+	if (rel.startsWith('analysis/')) return 'analysis';
+	if (rel.startsWith('excalidraw-diagrams/')) return 'diagram';
+	if (rel.startsWith('bmb-creations/')) return 'bmb-creation';
+
+	// Root-level files — categorize by filename prefix
+	const name = basename(filePath).toLowerCase();
+	if (/^(test-design|test-review|atdd-|automation-|traceability-|gate-decision-|nfr-)/.test(name)) return 'test-arch';
+	if (/^(design-thinking-|innovation-strategy-|problem-solution-|story-)/.test(name)) return 'cis';
+	if (/^brainstorming-/.test(name)) return 'analysis';
+
+	return 'other';
 }
 
 /**
