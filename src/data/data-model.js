@@ -1,5 +1,5 @@
 import { readdirSync, existsSync, statSync, readFileSync } from 'node:fs';
-import { join, extname, basename, relative } from 'node:path';
+import { join, extname, basename, relative, dirname } from 'node:path';
 import { parseYaml } from '../parsers/parse-yaml.js';
 import { parseMarkdownContent } from '../parsers/parse-markdown.js';
 import { ErrorAggregator } from '../utils/error-aggregator.js';
@@ -24,64 +24,145 @@ export function buildDataModel(bmadDir) {
 
 /**
  * Build wiki catalog data by scanning _bmad directory structure.
- * Scans each module (core, bmm, bmb, cis) for agents and workflows.
+ * Dynamically discovers modules and supports both:
+ *   - New structure: SKILL.md as entry point in skill directories
+ *   - Old structure: agents/ and workflows/ subdirectories with direct .md files
  */
 function buildWikiData(bmadPath, aggregator) {
 	const modules = [];
 	const allItems = [];
 
-	const moduleNames = ['core', 'bmm', 'bmb', 'cis'];
+	// Dynamically discover module directories (skip underscore-prefixed like _config)
+	let moduleDirs = [];
+	try {
+		const entries = readdirSync(bmadPath, { withFileTypes: true });
+		moduleDirs = entries
+			.filter(e => e.isDirectory() && !e.name.startsWith('_'))
+			.map(e => e.name)
+			.sort();
+	} catch {
+		return { modules, allItems };
+	}
 
-	for (const modName of moduleNames) {
+	for (const modName of moduleDirs) {
 		const modPath = join(bmadPath, modName);
-		if (!existsSync(modPath) || !statSync(modPath).isDirectory()) continue;
-
 		const moduleData = { id: modName, name: modName.toUpperCase(), groups: [] };
+		const groupMap = {};
 
-		// Scan agents
-		const agentsPath = join(modPath, 'agents');
-		if (existsSync(agentsPath) && statSync(agentsPath).isDirectory()) {
-			const agentFiles = scanDirectMarkdownFiles(agentsPath);
-			if (agentFiles.length > 0) {
-				const items = agentFiles.map((filePath) => {
-					const name = basename(filePath, '.md');
-					const id = `${modName}/agents/${name}`;
-					const content = readMarkdownSafe(filePath, aggregator);
-					return { id, name: formatName(name), type: 'agent', path: filePath, ...content };
-				});
-				moduleData.groups.push({ name: 'Agents', type: 'agents', items });
-				allItems.push(...items);
+		// --- New structure: find SKILL.md files recursively ---
+		const skillFiles = findNamedFilesRecursive(modPath, 'SKILL.md');
+		const skillDirs = new Set(skillFiles.map(f => dirname(f)));
+
+		for (const filePath of skillFiles) {
+			const rel = relative(modPath, filePath).replace(/\\/g, '/');
+			const parts = rel.split('/'); // e.g. ["skill-name","SKILL.md"] or ["category","skill-name","SKILL.md"]
+			const skillDirName = parts[parts.length - 2];
+			const groupName = parts.length > 2 ? parts[0] : null;
+			const groupKey = groupName ?? '__root__';
+			const displayGroup = groupName ? formatName(groupName) : 'Skills';
+
+			const id = `${modName}/${rel.replace('/SKILL.md', '')}`;
+			const content = readMarkdownSafe(filePath, aggregator);
+			const type = inferSkillType(groupName, skillDirName);
+			const item = { id, name: formatName(skillDirName), type, path: filePath, ...content };
+
+			if (!groupMap[groupKey]) {
+				groupMap[groupKey] = { name: displayGroup, type: groupKey === '__root__' ? 'skill' : groupKey, items: [], _sortKey: groupName ?? '' };
 			}
+			groupMap[groupKey].items.push(item);
+			allItems.push(item);
 		}
 
-		// Scan workflows
-		const workflowsPath = join(modPath, 'workflows');
-		if (existsSync(workflowsPath) && statSync(workflowsPath).isDirectory()) {
-			const workflowItems = scanWorkflows(workflowsPath, modName, aggregator);
-			if (workflowItems.length > 0) {
-				moduleData.groups.push({ name: 'Workflows', type: 'workflows', items: workflowItems });
-				allItems.push(...workflowItems);
+		// --- New structure: workflow.md files in dirs without SKILL.md ---
+		const workflowFiles = findNamedFilesRecursive(modPath, 'workflow.md')
+			.filter(f => !skillDirs.has(dirname(f)));
+
+		for (const filePath of workflowFiles) {
+			const rel = relative(modPath, filePath).replace(/\\/g, '/');
+			const parts = rel.split('/');
+			const skillDirName = parts[parts.length - 2];
+			const groupName = parts.length > 2 ? parts[0] : null;
+			// Use same groupKey as SKILL.md items so they merge into the same group
+			const groupKey = groupName ?? '__root__';
+			const displayGroup = groupName ? formatName(groupName) : 'Workflows';
+
+			const id = `${modName}/${rel.replace('/workflow.md', '')}`;
+			const content = readMarkdownSafe(filePath, aggregator);
+			const item = { id, name: formatName(skillDirName), type: 'workflow', path: filePath, ...content };
+
+			if (!groupMap[groupKey]) {
+				groupMap[groupKey] = { name: displayGroup, type: 'workflows', items: [], _sortKey: groupName ?? '' };
 			}
+			groupMap[groupKey].items.push(item);
+			allItems.push(item);
 		}
 
-		// Scan other resource directories
-		const otherDirs = ['tasks', 'resources', 'data', 'teams', 'testarch'];
-		for (const dirName of otherDirs) {
-			const dirPath = join(modPath, dirName);
-			if (existsSync(dirPath) && statSync(dirPath).isDirectory()) {
-				const files = scanDirectMarkdownFiles(dirPath);
-				if (files.length > 0) {
-					const items = files.map((filePath) => {
+		// --- Old structure (backward compat): only used if new-style SKILL.md scan found nothing ---
+		const newStyleFound = skillFiles.length > 0 || workflowFiles.length > 0;
+		if (!newStyleFound) {
+			// agents/ with direct .md files
+			const agentsPath = join(modPath, 'agents');
+			if (existsSync(agentsPath) && statSync(agentsPath).isDirectory()) {
+				const agentFiles = scanDirectMarkdownFiles(agentsPath);
+				if (agentFiles.length > 0) {
+					const groupKey = '__legacy_agents__';
+					if (!groupMap[groupKey]) {
+						groupMap[groupKey] = { name: 'Agents', type: 'agents', items: [], _sortKey: 'agents' };
+					}
+					for (const filePath of agentFiles) {
 						const name = basename(filePath, '.md');
-						const id = `${modName}/${dirName}/${name}`;
+						const id = `${modName}/agents/${name}`;
 						const content = readMarkdownSafe(filePath, aggregator);
-						return { id, name: formatName(name), type: dirName, path: filePath, ...content };
-					});
-					moduleData.groups.push({ name: formatName(dirName), type: dirName, items });
-					allItems.push(...items);
+						const item = { id, name: formatName(name), type: 'agent', path: filePath, ...content };
+						groupMap[groupKey].items.push(item);
+						allItems.push(item);
+					}
+				}
+			}
+
+			// workflows/ directory
+			const workflowsPath = join(modPath, 'workflows');
+			if (existsSync(workflowsPath) && statSync(workflowsPath).isDirectory()) {
+				const workflowItems = scanWorkflows(workflowsPath, modName, aggregator);
+				if (workflowItems.length > 0) {
+					const groupKey = '__legacy_workflows__';
+					if (!groupMap[groupKey]) {
+						groupMap[groupKey] = { name: 'Workflows', type: 'workflows', items: [], _sortKey: 'workflows' };
+					}
+					groupMap[groupKey].items.push(...workflowItems);
+					allItems.push(...workflowItems);
+				}
+			}
+
+			// other resource dirs
+			const otherDirs = ['tasks', 'resources', 'data', 'teams', 'testarch'];
+			for (const dirName of otherDirs) {
+				const dirPath = join(modPath, dirName);
+				if (existsSync(dirPath) && statSync(dirPath).isDirectory()) {
+					const files = scanDirectMarkdownFiles(dirPath);
+					if (files.length > 0) {
+						const groupKey = `__legacy_${dirName}__`;
+						if (!groupMap[groupKey]) {
+							groupMap[groupKey] = { name: formatName(dirName), type: dirName, items: [], _sortKey: dirName };
+						}
+						for (const filePath of files) {
+							const name = basename(filePath, '.md');
+							const id = `${modName}/${dirName}/${name}`;
+							const content = readMarkdownSafe(filePath, aggregator);
+							const item = { id, name: formatName(name), type: dirName, path: filePath, ...content };
+							groupMap[groupKey].items.push(item);
+							allItems.push(item);
+						}
+					}
 				}
 			}
 		}
+
+		// Sort groups alphabetically and attach to module
+		moduleData.groups = Object.values(groupMap)
+			.filter(g => g.items.length > 0)
+			.sort((a, b) => a._sortKey.localeCompare(b._sortKey))
+			.map(({ _sortKey, ...g }) => g);
 
 		if (moduleData.groups.length > 0) {
 			modules.push(moduleData);
@@ -89,6 +170,18 @@ function buildWikiData(bmadPath, aggregator) {
 	}
 
 	return { modules, allItems };
+}
+
+/**
+ * Infer the type of a skill based on its group/category name and skill name.
+ */
+function inferSkillType(groupName, skillName) {
+	const g = (groupName ?? '').toLowerCase();
+	const s = skillName.toLowerCase();
+	if (g.includes('agent') || s.includes('agent')) return 'agent';
+	if (g.includes('workflow') || g.includes('workflows')) return 'workflow';
+	if (g.includes('skill') || g.includes('skills')) return 'skill';
+	return 'skill';
 }
 
 /**
@@ -509,6 +602,27 @@ function loadConfig(bmadPath, aggregator) {
 	}
 
 	return config;
+}
+
+/**
+ * Recursively find all files with a specific filename within a directory.
+ */
+function findNamedFilesRecursive(dir, targetName) {
+	const found = [];
+	try {
+		const entries = readdirSync(dir, { withFileTypes: true });
+		for (const entry of entries) {
+			const fullPath = join(dir, entry.name);
+			if (entry.isDirectory()) {
+				found.push(...findNamedFilesRecursive(fullPath, targetName));
+			} else if (entry.isFile() && entry.name === targetName) {
+				found.push(fullPath);
+			}
+		}
+	} catch {
+		// Ignore access errors
+	}
+	return found.sort();
 }
 
 /**
