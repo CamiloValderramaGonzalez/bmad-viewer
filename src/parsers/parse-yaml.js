@@ -26,12 +26,14 @@ export function parseYaml(filePath) {
  */
 export function parseYamlContent(content, source = 'unknown') {
 	try {
-		const data = yaml.load(content);
+		const docs = yaml.loadAll(content);
+		const nonNull = docs.filter(d => d !== undefined && d !== null);
 
-		if (data === undefined || data === null) {
+		if (nonNull.length === 0) {
 			return createResult(null, [], [`Empty YAML content in ${source}`]);
 		}
 
+		const data = nonNull.length === 1 ? nonNull[0] : Object.assign({}, ...nonNull);
 		return createResult(data, [], []);
 	} catch (error) {
 		const warnings = [`Failed to parse ${source}`];
