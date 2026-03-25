@@ -585,7 +585,7 @@ function parseEpicsFromMarkdown(raw, storyContents) {
  */
 function parseEpicNamesFromComments(rawYaml) {
 	const names = {};
-	const regex = /#\s*Epic\s+(\d+):\s*(.+)/g;
+	const regex = /#\s*Epic\s+(\d+):\s*(.+)/gi;
 	let match;
 	while ((match = regex.exec(rawYaml)) !== null) {
 		names[match[1]] = match[2].trim();
