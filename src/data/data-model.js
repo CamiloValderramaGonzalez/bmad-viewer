@@ -369,10 +369,21 @@ function buildProjectData(outputPath, aggregator) {
 				...content,
 			});
 
-			// Parse stories from epics.md
+			// Parse stories and epics from epics.md
 			if (name === 'epics' && ext === '.md' && content.raw) {
 				const storyContents = parseStoriesFromEpics(content.raw, aggregator);
 				project.storyContents = storyContents;
+
+				// Build epics from markdown when no sprint-status.yaml was found
+				if (project.epics.length === 0) {
+					project.epics = parseEpicsFromMarkdown(content.raw, storyContents);
+					// Build story stats from epics.md stories
+					for (const epic of project.epics) {
+						project.stories.total += epic.stories.length;
+						project.stories.pending += epic.stories.length; // all backlog by default
+						project.storyList.push(...epic.stories);
+					}
+				}
 			}
 		}
 	}
@@ -537,6 +548,36 @@ function parseStoriesFromEpics(raw, aggregator) {
 	}
 
 	return storyMap;
+}
+
+/**
+ * Parse epics and their stories from epics.md markdown.
+ * Epics follow the pattern: ## Epic N: Title
+ * Stories follow the pattern: ### Story N.M: Title
+ */
+function parseEpicsFromMarkdown(raw, storyContents) {
+	const epicRegex = /^## Epic (\d+):\s*(.+)$/gm;
+	const epicMap = {};
+	let match;
+
+	while ((match = epicRegex.exec(raw)) !== null) {
+		const num = match[1];
+		const name = match[2].trim();
+		epicMap[num] = { id: `epic-${num}`, num, name, status: 'backlog', stories: [] };
+	}
+
+	// Assign stories to their epics
+	for (const [key, storyData] of Object.entries(storyContents)) {
+		const epicNum = key.split('-')[0];
+		const story = { id: key, title: storyData.title, status: 'backlog', epic: epicNum };
+		if (epicMap[epicNum]) {
+			epicMap[epicNum].stories.push(story);
+		} else {
+			epicMap[epicNum] = { id: `epic-${epicNum}`, num: epicNum, name: `Epic ${epicNum}`, status: 'backlog', stories: [story] };
+		}
+	}
+
+	return Object.values(epicMap).sort((a, b) => Number(a.num) - Number(b.num));
 }
 
 /**
