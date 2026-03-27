@@ -44,32 +44,67 @@ export function renderDashboard(dataModel) {
 	const inProgress = storyList.filter((s) => s.status === 'in-progress');
 	const done = storyList.filter((s) => s.status === 'done' || s.status === 'review');
 
-	const noEpicsNotice = project.epics.length === 0
-		? `<div class="path-config-panel" id="path-config-panel">
-	<div class="path-config-panel__header">
-		<h3>No epics found</h3>
-		<p>Could not auto-detect epics in your project. You can specify custom paths below.</p>
+	const noData = project.epics.length === 0 && project.stories.total === 0;
+	const configPanel = `<div class="path-config-panel${noData ? '' : ' path-config-panel--collapsed'}" id="path-config-panel">
+	<div class="path-config-panel__toggle" id="path-config-toggle">
+		<h3>${noData ? 'No project data found' : 'Custom paths'}</h3>
+		<span class="path-config-panel__arrow" id="path-config-arrow">${noData ? '' : '&#9654;'}</span>
 	</div>
-	<div class="path-config-panel__fields">
+	${noData ? '<p class="path-config-panel__hint" style="margin-bottom:12px">Could not auto-detect epics or sprint status. Specify custom paths below.</p>' : ''}
+	<div class="path-config-panel__fields" id="path-config-fields">
 		<label class="path-config-panel__label">
 			<span>Output folder</span>
-			<input type="text" id="custom-output-path" class="path-config-panel__input" placeholder="e.g. C:\\project\\_bmad-output" />
+			<input type="text" id="custom-output-path" class="path-config-panel__input" placeholder="e.g. /project/_bmad-output" />
 			<span class="path-config-panel__hint">Folder containing planning-artifacts, implementation-artifacts, etc.</span>
 		</label>
 		<label class="path-config-panel__label">
 			<span>Epics file</span>
-			<input type="text" id="custom-epics-path" class="path-config-panel__input" placeholder="e.g. C:\\project\\docs\\epics.md" />
+			<input type="text" id="custom-epics-path" class="path-config-panel__input" placeholder="e.g. /project/docs/epics.md" />
 			<span class="path-config-panel__hint">Markdown file with epic/story definitions (## Epic N: / ### Story N.M:)</span>
+		</label>
+		<label class="path-config-panel__label">
+			<span>Sprint status file</span>
+			<input type="text" id="custom-sprint-status-path" class="path-config-panel__input" placeholder="e.g. /project/sprint-status.yaml" />
+			<span class="path-config-panel__hint">YAML file (.yaml or .md) with development_status section</span>
 		</label>
 		<button class="path-config-panel__btn" id="apply-paths-btn">Apply</button>
 		<span class="path-config-panel__status" id="path-config-status"></span>
 	</div>
-</div>`
-		: '';
+</div>`;
+
+	// Mix bugs and pendientes into kanban columns as cards
+	const pendingGlobal = (project.pendingItems || []).filter(i => !i.done).map(i => ({
+		id: `global-${i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+		title: i.title,
+		status: 'backlog',
+		epic: 'Global',
+		detail: i.detail,
+		cardType: 'global',
+	}));
+	const doneGlobal = (project.pendingItems || []).filter(i => i.done).map(i => ({
+		id: `global-${i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+		title: i.title,
+		status: 'done',
+		epic: 'Global',
+		cardType: 'global',
+	}));
+	const bugCards = (project.bugs || []).map(b => ({
+		id: b.id.toLowerCase(),
+		title: b.description,
+		status: b.status,
+		epic: b.id,
+		cardType: 'bug',
+	}));
+	const doneBugs = bugCards.filter(b => b.status === 'done');
+	const activeBugs = bugCards.filter(b => b.status !== 'done');
+
+	const allPending = [...pending, ...pendingGlobal, ...activeBugs.filter(b => b.status === 'backlog')];
+	const allInProgress = [...inProgress, ...activeBugs.filter(b => b.status === 'in-progress')];
+	const allDone = [...done, ...doneBugs, ...doneGlobal];
 
 	const projectContent = `<div id="project-view" hidden>
 	<div id="project-dashboard">
-		${noEpicsNotice}
+		${configPanel}
 		${StatsBox({
 			total: project.stories.total,
 			pending: project.stories.pending,
@@ -78,9 +113,9 @@ export function renderDashboard(dataModel) {
 		})}
 		${ProgressBar({ completed: project.stories.done, total: project.stories.total })}
 		<div class="kanban">
-			${KanbanColumn({ title: 'Pending', stories: pending })}
-			${KanbanColumn({ title: 'In Progress', stories: inProgress })}
-			${KanbanColumn({ title: 'Done', stories: done })}
+			${KanbanColumn({ title: 'Pending', stories: allPending })}
+			${KanbanColumn({ title: 'In Progress', stories: allInProgress })}
+			${KanbanColumn({ title: 'Done', stories: allDone })}
 		</div>
 	</div>
 	<main class="content-area" id="project-content-area" hidden>

@@ -500,19 +500,39 @@
 
 	/* ── Path Config Panel ── */
 	function initPathConfig() {
+		var panel = document.getElementById('path-config-panel');
+		if (!panel) return;
+
+		// Toggle collapsed/expanded
+		var toggle = document.getElementById('path-config-toggle');
+		if (toggle) {
+			toggle.addEventListener('click', function () {
+				panel.classList.toggle('path-config-panel--collapsed');
+			});
+		}
+
+		// Load current overrides into inputs
+		fetch('/api/get-paths').then(function (r) { return r.json(); }).then(function (data) {
+			if (data.customOutputPath) { var el = document.getElementById('custom-output-path'); if (el) el.value = data.customOutputPath; }
+			if (data.customEpicsPath) { var el = document.getElementById('custom-epics-path'); if (el) el.value = data.customEpicsPath; }
+			if (data.customSprintStatusPath) { var el = document.getElementById('custom-sprint-status-path'); if (el) el.value = data.customSprintStatusPath; }
+		}).catch(function () {});
+
 		var btn = document.getElementById('apply-paths-btn');
 		if (!btn) return;
 
 		btn.addEventListener('click', function () {
 			var epicsInput = document.getElementById('custom-epics-path');
 			var outputInput = document.getElementById('custom-output-path');
+			var sprintInput = document.getElementById('custom-sprint-status-path');
 			var status = document.getElementById('path-config-status');
 			var payload = {};
 
 			if (outputInput && outputInput.value.trim()) payload.outputPath = outputInput.value.trim();
 			if (epicsInput && epicsInput.value.trim()) payload.epicsPath = epicsInput.value.trim();
+			if (sprintInput && sprintInput.value.trim()) payload.sprintStatusPath = sprintInput.value.trim();
 
-			if (!payload.outputPath && !payload.epicsPath) {
+			if (!payload.outputPath && !payload.epicsPath && !payload.sprintStatusPath) {
 				if (status) { status.textContent = 'Enter at least one path'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
 				return;
 			}

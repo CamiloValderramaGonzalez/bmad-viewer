@@ -150,13 +150,17 @@ mark.search-highlight{background:rgba(245,158,11,.4);color:var(--text);border-ra
 .warning-banner{background:rgba(245,158,11,.1);border-bottom:1px solid var(--warning);padding:8px var(--gap)}
 .warning-banner__item{font-size:.85rem;color:var(--text)}
 /* Path config panel */
-.path-config-panel{background:var(--accent-soft);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:20px}
-.path-config-panel__header h3{font-size:1rem;margin-bottom:4px}
-.path-config-panel__header p{font-size:.85rem;color:var(--text-muted);margin-bottom:16px}
-.path-config-panel__fields{display:flex;flex-direction:column;gap:12px}
+.path-config-panel{background:var(--accent-soft);border:1px solid var(--border);border-radius:var(--radius);padding:16px 24px;margin-bottom:20px}
+.path-config-panel__toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.path-config-panel__toggle h3{font-size:.95rem;margin:0}
+.path-config-panel__arrow{font-size:.75rem;color:var(--text-muted);transition:transform .2s}
+.path-config-panel--collapsed .path-config-panel__fields{display:none}
+.path-config-panel--collapsed .path-config-panel__arrow{transform:rotate(0deg)}
+.path-config-panel:not(.path-config-panel--collapsed) .path-config-panel__arrow{transform:rotate(90deg)}
+.path-config-panel__fields{display:flex;flex-direction:column;gap:12px;margin-top:12px}
 .path-config-panel__label{display:flex;flex-direction:column;gap:4px}
 .path-config-panel__label>span:first-child{font-size:.85rem;font-weight:600}
-.path-config-panel__input{font-family:var(--font-mono);font-size:.85rem;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);width:100%}
+.path-config-panel__input{font-family:var(--font-mono);font-size:.85rem;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);width:100%;box-sizing:border-box}
 .path-config-panel__input:focus{outline:none;border-color:var(--primary)}
 .path-config-panel__hint{font-size:.75rem;color:var(--text-muted)}
 .path-config-panel__btn{align-self:flex-start;padding:8px 20px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-size:.85rem;font-weight:600;transition:background .15s}
@@ -165,6 +169,10 @@ mark.search-highlight{background:rgba(245,158,11,.4);color:var(--text);border-ra
 .path-config-panel__status{font-size:.85rem;color:var(--text-muted);align-self:center}
 .path-config-panel__status--ok{color:var(--success)}
 .path-config-panel__status--err{color:var(--warning)}
+/* Bug & pending cards in kanban */
+.kanban-card--bug{border-left:3px solid #e74c3c}
+.kanban-card--global{border-left:3px solid var(--warning)}
+.kanban-card__detail{color:var(--text-muted);font-size:.8rem;margin-bottom:4px}
 /* Responsive */
 @media(max-width:768px){.app-layout{grid-template-columns:1fr}.app-layout__sidebar{max-height:none;position:static;border-right:none;border-bottom:1px solid var(--border)}.kanban{grid-template-columns:1fr}.stats-box{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:440px){.header-bar__shortcut{display:none}.stats-box{grid-template-columns:1fr}.lens-tabs__tab{padding:8px 12px;font-size:.85rem}}

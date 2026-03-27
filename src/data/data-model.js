@@ -8,7 +8,7 @@ import { ErrorAggregator } from '../utils/error-aggregator.js';
  * Build the complete in-memory data model from a BMAD project.
  *
  * @param {string} bmadDir - Project root containing _bmad/
- * @param {{customEpicsPath?: string, customOutputPath?: string}} [options] - Optional overrides
+ * @param {{customEpicsPath?: string, customOutputPath?: string, customSprintStatusPath?: string}} [options] - Optional overrides
  * @returns {{wiki: object, project: object, config: object, aggregator: ErrorAggregator}}
  */
 export function buildDataModel(bmadDir, options) {
@@ -17,7 +17,7 @@ export function buildDataModel(bmadDir, options) {
 	const outputPath = options?.customOutputPath || join(bmadDir, '_bmad-output');
 
 	const wiki = buildWikiData(bmadPath, aggregator);
-	const project = buildProjectData(outputPath, aggregator, options?.customEpicsPath);
+	const project = buildProjectData(outputPath, aggregator, options);
 	const config = loadConfig(bmadPath, aggregator);
 
 	return { wiki, project, config, aggregator };
@@ -281,15 +281,18 @@ function readMarkdownSafe(filePath, aggregator) {
  * Build project data from _bmad-output directory.
  * @param {string} outputPath
  * @param {ErrorAggregator} aggregator
- * @param {string} [customEpicsPath] - Optional override path to epics file
+ * @param {{customEpicsPath?: string, customSprintStatusPath?: string}} [options]
  */
-function buildProjectData(outputPath, aggregator, customEpicsPath) {
+function buildProjectData(outputPath, aggregator, options) {
+	const customEpicsPath = options?.customEpicsPath;
 	const project = {
 		sprintStatus: null,
 		stories: { total: 0, pending: 0, inProgress: 0, done: 0 },
 		storyList: [],
 		epics: [],
 		artifacts: [],
+		bugs: [],
+		pendingItems: [],
 	};
 
 	if (!existsSync(outputPath)) {
@@ -297,23 +300,33 @@ function buildProjectData(outputPath, aggregator, customEpicsPath) {
 		return project;
 	}
 
-	// Parse sprint-status.yaml
+	// Parse sprint-status (yaml or md)
 	const sprintStatusPaths = [
 		join(outputPath, 'implementation-artifacts', 'sprint-status.yaml'),
+		join(outputPath, 'implementation-artifacts', 'sprint-status.md'),
 		join(outputPath, 'sprint-status.yaml'),
+		join(outputPath, 'sprint-status.md'),
+		join(outputPath, 'planning-artifacts', 'sprint-status.yaml'),
+		join(outputPath, 'planning-artifacts', 'sprint-status.md'),
 	];
+	if (options?.customSprintStatusPath) {
+		sprintStatusPaths.unshift(options.customSprintStatusPath);
+	}
 
 	for (const statusPath of sprintStatusPaths) {
 		if (existsSync(statusPath)) {
-			const result = parseYaml(statusPath);
-			aggregator.addResult(statusPath, result);
+			let raw = '';
+			try { raw = readFileSync(statusPath, 'utf8'); } catch { /* ignore */ }
 
-			// Read raw YAML to extract epic names from comments
-			let rawYaml = '';
-			try { rawYaml = readFileSync(statusPath, 'utf8'); } catch { /* ignore */ }
-			const epicNames = parseEpicNamesFromComments(rawYaml);
+			// Try YAML format first (only report errors for .yaml files)
+			const result = parseYaml(statusPath);
+			const ext = extname(statusPath).toLowerCase();
+			if (ext === '.yaml' || ext === '.yml') {
+				aggregator.addResult(statusPath, result);
+			}
 
 			if (result.data?.development_status) {
+				const epicNames = parseEpicNamesFromComments(raw);
 				project.sprintStatus = result.data;
 				const status = result.data.development_status;
 				const epicMap = {};
@@ -352,8 +365,13 @@ function buildProjectData(outputPath, aggregator, customEpicsPath) {
 				}
 
 				project.epics = Object.values(epicMap).sort((a, b) => Number(a.num) - Number(b.num));
+				break;
 			}
-			break;
+
+			// Fallback: try markdown table format (### Epic N: Name + | N.M | desc | status |)
+			if (raw && parseSprintStatusMarkdown(raw, project)) {
+				break;
+			}
 		}
 	}
 
@@ -364,6 +382,10 @@ function buildProjectData(outputPath, aggregator, customEpicsPath) {
 		for (const file of files) {
 			const ext = extname(file).toLowerCase();
 			const name = basename(file, ext);
+
+			// Skip sprint-status files (already parsed above)
+			if (name === 'sprint-status') continue;
+
 			const content = ext === '.html'
 				? readHtmlSafe(file)
 				: readMarkdownSafe(file, aggregator);
@@ -381,14 +403,48 @@ function buildProjectData(outputPath, aggregator, customEpicsPath) {
 				const storyContents = parseStoriesFromEpics(content.raw, aggregator);
 				project.storyContents = storyContents;
 
-				// Build epics from markdown when no sprint-status.yaml was found
 				if (project.epics.length === 0) {
+					// No sprint-status found — build epics entirely from markdown
 					project.epics = parseEpicsFromMarkdown(content.raw, storyContents);
-					// Build story stats from epics.md stories
 					for (const epic of project.epics) {
 						project.stories.total += epic.stories.length;
-						project.stories.pending += epic.stories.length; // all backlog by default
+						project.stories.pending += epic.stories.length;
 						project.storyList.push(...epic.stories);
+					}
+				} else {
+					// Merge: add stories from epics.md that are missing in sprint-status
+					const mdEpics = parseEpicsFromMarkdown(content.raw, storyContents);
+					const existingIds = new Set(project.storyList.map(s => `${s.epic}-${s.id.split('-')[1]}`));
+					for (const mdEpic of mdEpics) {
+						let sprintEpic = project.epics.find(e => e.num === mdEpic.num);
+						if (!sprintEpic) {
+							// Entire epic missing from sprint-status — add with all stories as backlog
+							sprintEpic = { ...mdEpic, stories: [], status: 'backlog' };
+							for (const story of mdEpic.stories) {
+								story.status = 'backlog';
+								sprintEpic.stories.push(story);
+								project.storyList.push(story);
+								project.stories.total++;
+								project.stories.pending++;
+							}
+							project.epics.push(sprintEpic);
+							project.epics.sort((a, b) => Number(a.num) - Number(b.num));
+						} else {
+							if (!sprintEpic.name || sprintEpic.name === `Epic ${sprintEpic.num}`) {
+								sprintEpic.name = mdEpic.name;
+							}
+							// Add only stories missing from sprint-status
+							for (const story of mdEpic.stories) {
+								const storyKey = `${mdEpic.num}-${story.id.split('-')[1]}`;
+								if (!existingIds.has(storyKey)) {
+									story.status = 'backlog';
+									sprintEpic.stories.push(story);
+									project.storyList.push(story);
+									project.stories.total++;
+									project.stories.pending++;
+								}
+							}
+						}
 					}
 				}
 			}
@@ -616,6 +672,113 @@ function parseEpicsFromMarkdown(raw, storyContents) {
 	}
 
 	return Object.values(epicMap).sort((a, b) => Number(a.num) - Number(b.num));
+}
+
+/**
+ * Parse sprint-status from markdown table format.
+ * Expects ### Epic N: Name headers followed by tables with | N.M | description | status |
+ * @returns {boolean} true if data was found
+ */
+function parseSprintStatusMarkdown(raw, project) {
+	const epicHeaderRegex = /^#{2,3}\s*Epic\s+(\d+):\s*(.+)$/gm;
+	const storyRowRegex = /^\|\s*(\d+)\.(\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/gm;
+
+	// First pass: find all epic headers
+	const epicMap = {};
+	let match;
+	while ((match = epicHeaderRegex.exec(raw)) !== null) {
+		const epicNum = match[1];
+		epicMap[epicNum] = {
+			id: `epic-${epicNum}`,
+			num: epicNum,
+			name: match[2].trim(),
+			status: 'in-progress',
+			stories: [],
+		};
+	}
+
+	if (Object.keys(epicMap).length === 0) return false;
+
+	// Second pass: find all story rows
+	while ((match = storyRowRegex.exec(raw)) !== null) {
+		const epicNum = match[1];
+		const storyNum = match[2];
+		const title = match[3].trim();
+		const rawStatus = match[4].trim();
+
+		// Normalize status from emoji/text to our standard values
+		const status = normalizeMarkdownStatus(rawStatus);
+
+		project.stories.total++;
+		if (status === 'backlog' || status === 'ready-for-dev') project.stories.pending++;
+		else if (status === 'in-progress') project.stories.inProgress++;
+		else if (status === 'done' || status === 'review') project.stories.done++;
+
+		const story = {
+			id: `${epicNum}-${storyNum}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`,
+			title,
+			status,
+			epic: epicNum,
+		};
+		project.storyList.push(story);
+
+		if (!epicMap[epicNum]) {
+			epicMap[epicNum] = { id: `epic-${epicNum}`, num: epicNum, name: `Epic ${epicNum}`, status: 'in-progress', stories: [] };
+		}
+		epicMap[epicNum].stories.push(story);
+	}
+
+	// Determine epic status from stories
+	for (const epic of Object.values(epicMap)) {
+		if (epic.stories.length === 0) continue;
+		const allDone = epic.stories.every(s => s.status === 'done' || s.status === 'review');
+		const anyInProgress = epic.stories.some(s => s.status === 'in-progress');
+		if (allDone) epic.status = 'done';
+		else if (anyInProgress) epic.status = 'in-progress';
+	}
+
+	project.epics = Object.values(epicMap).sort((a, b) => Number(a.num) - Number(b.num));
+
+	// Parse bugs table: | BUG-XXX | desc | epic | status |
+	const bugRowRegex = /^\|\s*(BUG-\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/gm;
+	while ((match = bugRowRegex.exec(raw)) !== null) {
+		project.bugs.push({
+			id: match[1],
+			description: match[2].trim(),
+			epic: match[3].trim(),
+			status: normalizeMarkdownStatus(match[4].trim()),
+		});
+	}
+
+	// Parse pendientes globales: - [ ] text or - [✅] text or - [x] text
+	const pendingRegex = /^-\s*\[([^\]]*)\]\s*\*{0,2}(.+?)(?:\*{0,2}\s*[-–—]\s*(.+))?$/gm;
+	while ((match = pendingRegex.exec(raw)) !== null) {
+		const check = match[1].trim();
+		const done = check === '✅' || check.toLowerCase() === 'x';
+		project.pendingItems.push({
+			title: match[2].replace(/\*{1,2}/g, '').trim(),
+			detail: match[3]?.trim() || '',
+			done,
+		});
+	}
+
+	return project.stories.total > 0;
+}
+
+/**
+ * Normalize markdown status text/emojis to standard status values.
+ */
+function normalizeMarkdownStatus(raw) {
+	const lower = raw.toLowerCase();
+	// Strip parenthetical notes for primary status detection
+	const primary = lower.replace(/\(.*?\)/g, '').trim();
+	if (primary.includes('done') || primary.includes('completado') || raw.includes('✅')) return 'done';
+	if (primary.includes('in-progress') || primary.includes('in progress') || primary.includes('en progreso') || raw.includes('🔄')) return 'in-progress';
+	if (primary.includes('review') || primary.includes('revisión') || primary.includes('revision')) return 'review';
+	if (primary.includes('parcial')) return 'in-progress';
+	if (primary.includes('pendiente') || primary.includes('pending') || primary.includes('backlog')) return 'backlog';
+	if (raw.includes('⏳')) return 'in-progress';
+	return 'backlog';
 }
 
 /**

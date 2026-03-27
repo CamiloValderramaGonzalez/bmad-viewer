@@ -22,7 +22,7 @@ export async function startServer({ port, bmadDir, open }) {
 	const actualPort = await findAvailablePort(port);
 
 	// Custom path overrides (can be set via API)
-	const overrides = { customEpicsPath: null, customOutputPath: null };
+	const overrides = { customEpicsPath: null, customOutputPath: null, customSprintStatusPath: null };
 
 	// Build initial data model
 	let dataModel = buildDataModel(bmadDir, overrides);
@@ -45,6 +45,7 @@ export async function startServer({ port, bmadDir, open }) {
 					const data = JSON.parse(body);
 					if (data.epicsPath !== undefined) overrides.customEpicsPath = data.epicsPath || null;
 					if (data.outputPath !== undefined) overrides.customOutputPath = data.outputPath || null;
+					if (data.sprintStatusPath !== undefined) overrides.customSprintStatusPath = data.sprintStatusPath || null;
 					dataModel = buildDataModel(bmadDir, overrides);
 					res.writeHead(200, { 'Content-Type': 'application/json' });
 					res.end(JSON.stringify({ ok: true, epics: dataModel.project.epics.length, stories: dataModel.project.stories.total }));
