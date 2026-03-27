@@ -491,7 +491,57 @@
 		// Sidebar
 		initSidebarToggles();
 
+		// Path config panel
+		initPathConfig();
+
 		// WebSocket
 		initWebSocket();
 	});
+
+	/* ── Path Config Panel ── */
+	function initPathConfig() {
+		var btn = document.getElementById('apply-paths-btn');
+		if (!btn) return;
+
+		btn.addEventListener('click', function () {
+			var epicsInput = document.getElementById('custom-epics-path');
+			var outputInput = document.getElementById('custom-output-path');
+			var status = document.getElementById('path-config-status');
+			var payload = {};
+
+			if (outputInput && outputInput.value.trim()) payload.outputPath = outputInput.value.trim();
+			if (epicsInput && epicsInput.value.trim()) payload.epicsPath = epicsInput.value.trim();
+
+			if (!payload.outputPath && !payload.epicsPath) {
+				if (status) { status.textContent = 'Enter at least one path'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
+				return;
+			}
+
+			btn.disabled = true;
+			if (status) { status.textContent = 'Applying...'; status.className = 'path-config-panel__status'; }
+
+			fetch('/api/set-paths', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload),
+			})
+				.then(function (r) { return r.json(); })
+				.then(function (data) {
+					btn.disabled = false;
+					if (data.ok) {
+						if (status) {
+							status.textContent = 'Found ' + data.epics + ' epics, ' + data.stories + ' stories. Reloading...';
+							status.className = 'path-config-panel__status path-config-panel__status--ok';
+						}
+						setTimeout(function () { location.reload(); }, 800);
+					} else {
+						if (status) { status.textContent = data.error || 'Error applying paths'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
+					}
+				})
+				.catch(function () {
+					btn.disabled = false;
+					if (status) { status.textContent = 'Network error'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
+				});
+		});
+	}
 })();

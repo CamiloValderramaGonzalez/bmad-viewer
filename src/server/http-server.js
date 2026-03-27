@@ -21,8 +21,11 @@ const PUBLIC_DIR = join(__dirname, '..', '..', 'public');
 export async function startServer({ port, bmadDir, open }) {
 	const actualPort = await findAvailablePort(port);
 
+	// Custom path overrides (can be set via API)
+	const overrides = { customEpicsPath: null, customOutputPath: null };
+
 	// Build initial data model
-	let dataModel = buildDataModel(bmadDir);
+	let dataModel = buildDataModel(bmadDir, overrides);
 
 	// Create HTTP server
 	const server = createServer((req, res) => {
@@ -33,10 +36,37 @@ export async function startServer({ port, bmadDir, open }) {
 		res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*");
 		res.setHeader('X-Content-Type-Options', 'nosniff');
 
+		// API endpoint: set custom paths
+		if (pathname === '/api/set-paths' && req.method === 'POST') {
+			let body = '';
+			req.on('data', chunk => { body += chunk; });
+			req.on('end', () => {
+				try {
+					const data = JSON.parse(body);
+					if (data.epicsPath !== undefined) overrides.customEpicsPath = data.epicsPath || null;
+					if (data.outputPath !== undefined) overrides.customOutputPath = data.outputPath || null;
+					dataModel = buildDataModel(bmadDir, overrides);
+					res.writeHead(200, { 'Content-Type': 'application/json' });
+					res.end(JSON.stringify({ ok: true, epics: dataModel.project.epics.length, stories: dataModel.project.stories.total }));
+				} catch {
+					res.writeHead(400, { 'Content-Type': 'application/json' });
+					res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
+				}
+			});
+			return;
+		}
+
+		// API endpoint: get current overrides
+		if (pathname === '/api/get-paths') {
+			res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+			res.end(JSON.stringify(overrides));
+			return;
+		}
+
 		// API endpoint: get fresh HTML
 		if (pathname === '/api/dashboard') {
 			res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-			dataModel = buildDataModel(bmadDir);
+			dataModel = buildDataModel(bmadDir, overrides);
 			const html = renderDashboard(dataModel);
 			res.end(JSON.stringify({ html }));
 			return;
@@ -72,7 +102,7 @@ export async function startServer({ port, bmadDir, open }) {
 
 		if (debounceTimer) clearTimeout(debounceTimer);
 		debounceTimer = setTimeout(() => {
-			dataModel = buildDataModel(bmadDir);
+			dataModel = buildDataModel(bmadDir, overrides);
 			broadcastChange([...pendingChanges]);
 			pendingChanges.length = 0;
 		}, 150);

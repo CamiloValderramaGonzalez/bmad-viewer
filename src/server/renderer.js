@@ -44,8 +44,32 @@ export function renderDashboard(dataModel) {
 	const inProgress = storyList.filter((s) => s.status === 'in-progress');
 	const done = storyList.filter((s) => s.status === 'done' || s.status === 'review');
 
+	const noEpicsNotice = project.epics.length === 0
+		? `<div class="path-config-panel" id="path-config-panel">
+	<div class="path-config-panel__header">
+		<h3>No epics found</h3>
+		<p>Could not auto-detect epics in your project. You can specify custom paths below.</p>
+	</div>
+	<div class="path-config-panel__fields">
+		<label class="path-config-panel__label">
+			<span>Output folder</span>
+			<input type="text" id="custom-output-path" class="path-config-panel__input" placeholder="e.g. C:\\project\\_bmad-output" />
+			<span class="path-config-panel__hint">Folder containing planning-artifacts, implementation-artifacts, etc.</span>
+		</label>
+		<label class="path-config-panel__label">
+			<span>Epics file</span>
+			<input type="text" id="custom-epics-path" class="path-config-panel__input" placeholder="e.g. C:\\project\\docs\\epics.md" />
+			<span class="path-config-panel__hint">Markdown file with epic/story definitions (## Epic N: / ### Story N.M:)</span>
+		</label>
+		<button class="path-config-panel__btn" id="apply-paths-btn">Apply</button>
+		<span class="path-config-panel__status" id="path-config-status"></span>
+	</div>
+</div>`
+		: '';
+
 	const projectContent = `<div id="project-view" hidden>
 	<div id="project-dashboard">
+		${noEpicsNotice}
 		${StatsBox({
 			total: project.stories.total,
 			pending: project.stories.pending,

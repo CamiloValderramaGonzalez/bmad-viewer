@@ -8,15 +8,16 @@ import { ErrorAggregator } from '../utils/error-aggregator.js';
  * Build the complete in-memory data model from a BMAD project.
  *
  * @param {string} bmadDir - Project root containing _bmad/
+ * @param {{customEpicsPath?: string, customOutputPath?: string}} [options] - Optional overrides
  * @returns {{wiki: object, project: object, config: object, aggregator: ErrorAggregator}}
  */
-export function buildDataModel(bmadDir) {
+export function buildDataModel(bmadDir, options) {
 	const aggregator = new ErrorAggregator();
 	const bmadPath = join(bmadDir, '_bmad');
-	const outputPath = join(bmadDir, '_bmad-output');
+	const outputPath = options?.customOutputPath || join(bmadDir, '_bmad-output');
 
 	const wiki = buildWikiData(bmadPath, aggregator);
-	const project = buildProjectData(outputPath, aggregator);
+	const project = buildProjectData(outputPath, aggregator, options?.customEpicsPath);
 	const config = loadConfig(bmadPath, aggregator);
 
 	return { wiki, project, config, aggregator };
@@ -278,8 +279,11 @@ function readMarkdownSafe(filePath, aggregator) {
 
 /**
  * Build project data from _bmad-output directory.
+ * @param {string} outputPath
+ * @param {ErrorAggregator} aggregator
+ * @param {string} [customEpicsPath] - Optional override path to epics file
  */
-function buildProjectData(outputPath, aggregator) {
+function buildProjectData(outputPath, aggregator, customEpicsPath) {
 	const project = {
 		sprintStatus: null,
 		stories: { total: 0, pending: 0, inProgress: 0, done: 0 },
@@ -288,7 +292,10 @@ function buildProjectData(outputPath, aggregator) {
 		artifacts: [],
 	};
 
-	if (!existsSync(outputPath)) return project;
+	if (!existsSync(outputPath)) {
+		loadCustomEpicsFile(customEpicsPath, project, aggregator);
+		return project;
+	}
 
 	// Parse sprint-status.yaml
 	const sprintStatusPaths = [
@@ -369,8 +376,8 @@ function buildProjectData(outputPath, aggregator) {
 				...content,
 			});
 
-			// Parse stories and epics from epics.md
-			if (name === 'epics' && ext === '.md' && content.raw) {
+			// Parse stories and epics from epics.md or epics-and-stories.md
+			if (name.startsWith('epics') && ext === '.md' && content.raw) {
 				const storyContents = parseStoriesFromEpics(content.raw, aggregator);
 				project.storyContents = storyContents;
 
@@ -386,6 +393,11 @@ function buildProjectData(outputPath, aggregator) {
 				}
 			}
 		}
+	}
+
+	// Load custom epics file if provided and no epics were found from normal scan
+	if (project.epics.length === 0) {
+		loadCustomEpicsFile(customEpicsPath, project, aggregator);
 	}
 
 	// Scan implementation artifact story files (direct .md files in impl dir + stories/ subdir)
@@ -503,14 +515,40 @@ function buildProjectData(outputPath, aggregator) {
 }
 
 /**
+ * Load a custom epics file and populate project data from it.
+ */
+function loadCustomEpicsFile(customEpicsPath, project, aggregator) {
+	if (!customEpicsPath || !existsSync(customEpicsPath)) return;
+	const content = readMarkdownSafe(customEpicsPath, aggregator);
+	if (!content.raw) return;
+
+	const name = basename(customEpicsPath, extname(customEpicsPath));
+	project.artifacts.push({
+		id: `artifact/${name}`,
+		name: formatName(name),
+		path: customEpicsPath,
+		type: 'planning',
+		...content,
+	});
+	const storyContents = parseStoriesFromEpics(content.raw, aggregator);
+	project.storyContents = storyContents;
+	project.epics = parseEpicsFromMarkdown(content.raw, storyContents);
+	for (const epic of project.epics) {
+		project.stories.total += epic.stories.length;
+		project.stories.pending += epic.stories.length;
+		project.storyList.push(...epic.stories);
+	}
+}
+
+/**
  * Parse individual story sections from epics.md.
  * Stories follow the pattern: ### Story X.Y: Title
  * Returns a map of story key (e.g. "1-1") to {title, markdown}.
  */
 function parseStoriesFromEpics(raw, aggregator) {
 	const storyMap = {};
-	// Split on story headers
-	const storyRegex = /^### Story (\d+)\.(\d+):\s*(.+)$/gm;
+	// Split on story headers (supports ### or #### level)
+	const storyRegex = /^#{3,4} Story (\d+)\.(\d+):\s*(.+)$/gm;
 	let match;
 	const positions = [];
 
@@ -556,7 +594,7 @@ function parseStoriesFromEpics(raw, aggregator) {
  * Stories follow the pattern: ### Story N.M: Title
  */
 function parseEpicsFromMarkdown(raw, storyContents) {
-	const epicRegex = /^## Epic (\d+):\s*(.+)$/gm;
+	const epicRegex = /^#{2,3} Epic (\d+):\s*(.+)$/gm;
 	const epicMap = {};
 	let match;
 
