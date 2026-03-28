@@ -182,29 +182,30 @@ mark.search-highlight{background:rgba(245,158,11,.4);color:var(--text);border-ra
 .path-config-panel__status--ok{color:var(--success)}
 .path-config-panel__status--err{color:var(--warning)}
 /* Integrations */
-.platform-launcher{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-alt)}
-.platform-launcher__copy{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.platform-launcher{display:flex;flex-direction:column;gap:10px;margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--bg-alt)}
+.platform-launcher__header{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.platform-launcher__copy{display:flex;flex-direction:column;gap:3px}
 .platform-launcher__title{font-size:.88rem;margin:0}
 .platform-launcher__subtitle{font-size:.78rem;color:var(--text-muted)}
 .platform-launcher__actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.platform-launcher__summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border-radius:10px;background:var(--card-bg,var(--bg));border:1px solid var(--border);min-width:min(100%,320px)}
+.platform-launcher__summary{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:var(--card-bg,var(--bg));border:1px solid var(--border)}
+.platform-launcher__summary-label{display:inline-flex;align-items:center;justify-content:center;padding:5px 8px;border-radius:999px;background:var(--accent-soft);color:var(--primary);font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
 .platform-launcher__summary-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
 .platform-launcher__summary-copy strong{font-size:.82rem;color:var(--text)}
 .platform-launcher__summary-copy span{font-size:.76rem;color:var(--text-muted);line-height:1.3}
-.platform-launcher__summary-link{color:var(--primary);text-decoration:none;font-size:.8rem;font-weight:700;white-space:nowrap}
+.platform-launcher__summary-link{color:var(--primary);text-decoration:none;font-size:.8rem;font-weight:700;white-space:nowrap;margin-left:auto}
 .platform-launcher__summary-link:hover{text-decoration:underline}
-.platform-chip{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:12px;background:var(--card-bg,var(--bg));color:var(--text);cursor:pointer;min-width:0;text-align:left;transition:transform .15s,border-color .15s,box-shadow .15s}
+.platform-chip{display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid var(--border);border-radius:12px;background:var(--card-bg,var(--bg));color:var(--text);cursor:pointer;min-width:140px;text-align:left;transition:transform .15s,border-color .15s,box-shadow .15s}
 .platform-chip:hover{transform:translateY(-1px);border-color:var(--primary);box-shadow:0 10px 24px rgba(0,0,0,.08)}
 .platform-chip__logo{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;flex-shrink:0}
 .platform-chip__logo svg{width:16px;height:16px}
 .platform-chip--github .platform-chip__logo{background:#111827;color:#fff}
 .platform-chip--jira .platform-chip__logo{background:#1868db;color:#fff}
 .platform-chip--azure .platform-chip__logo{background:#0078d4;color:#fff}
-.platform-chip__text{display:flex;flex-direction:column;gap:0;font-size:.72rem;color:var(--text-muted)}
+.platform-chip__text{display:flex;flex-direction:column;gap:1px;font-size:.72rem;color:var(--text-muted)}
 .platform-chip__text strong{font-size:.8rem;color:var(--text);line-height:1.1}
 .platform-chip__status{color:var(--text-muted);line-height:1.2}
 .platform-chip__status--connected{color:var(--success)}
-.platform-chip__meta{font-size:.68rem;line-height:1.2;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .integration-modal{position:fixed;inset:0;z-index:220;display:flex;align-items:center;justify-content:center;padding:24px}
 .integration-modal[hidden]{display:none}
 .integration-modal__backdrop{position:absolute;inset:0;background:var(--modal-bg);backdrop-filter:blur(3px)}
@@ -259,5 +260,5 @@ mark.search-highlight{background:rgba(245,158,11,.4);color:var(--text);border-ra
 /* Responsive */
 @media(max-width:1180px){.kanban{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:920px){.kanban{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:768px){.app-layout{grid-template-columns:1fr}.app-layout__sidebar{max-height:none;position:static;border-right:none;border-bottom:1px solid var(--border)}.kanban{grid-template-columns:1fr}.kanban-toolbar{align-items:flex-start;flex-direction:column}.platform-launcher{align-items:flex-start;flex-direction:column}.platform-launcher__copy{align-items:flex-start;flex-direction:column;gap:2px}.platform-launcher__actions{justify-content:flex-start}.platform-launcher__summary{width:100%;align-items:flex-start;flex-direction:column}.platform-chip{min-width:min(100%,220px)}.integration-modal{padding:12px}.integration-modal__content{padding:18px 16px}.integration-pane__intro{flex-direction:column}.integration-panel__grid{grid-template-columns:1fr}.stats-box{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.app-layout{grid-template-columns:1fr}.app-layout__sidebar{max-height:none;position:static;border-right:none;border-bottom:1px solid var(--border)}.kanban{grid-template-columns:1fr}.kanban-toolbar{align-items:flex-start;flex-direction:column}.platform-launcher__header{align-items:flex-start;flex-direction:column}.platform-launcher__actions{justify-content:flex-start}.platform-launcher__summary{width:100%;align-items:flex-start;flex-direction:column}.platform-launcher__summary-link{margin-left:0}.platform-chip{min-width:min(100%,220px)}.integration-modal{padding:12px}.integration-modal__content{padding:18px 16px}.integration-pane__intro{flex-direction:column}.integration-panel__grid{grid-template-columns:1fr}.stats-box{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:440px){.header-bar__shortcut{display:none}.stats-box{grid-template-columns:1fr}.lens-tabs__tab{padding:8px 12px;font-size:.85rem}}

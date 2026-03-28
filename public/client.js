@@ -976,7 +976,6 @@
 	function setGitHubConnectionBadge(connected, label) {
 		var badge = document.getElementById('github-connection-badge');
 		var launcher = document.getElementById('github-launcher-status');
-		var launcherMeta = document.getElementById('github-launcher-meta');
 		var text = connected ? label : 'Not connected';
 
 		if (badge) {
@@ -988,10 +987,6 @@
 			launcher.textContent = text;
 			launcher.className = connected ? 'platform-chip__status platform-chip__status--connected' : 'platform-chip__status';
 		}
-
-		if (launcherMeta && !connected) {
-			launcherMeta.textContent = 'No linked project yet';
-		}
 	}
 
 	function renderGitHubProjectState(config) {
@@ -999,14 +994,12 @@
 		var title = document.getElementById('github-project-title');
 		var subtitle = document.getElementById('github-project-subtitle');
 		var link = document.getElementById('github-project-link');
-		var launcherMeta = document.getElementById('github-launcher-meta');
 		var project = config && config.project ? config.project : null;
 
 		if (!summary || !title || !subtitle || !link) return;
 
 		if (!project || !project.title) {
 			summary.hidden = true;
-			if (launcherMeta) launcherMeta.textContent = 'No linked project yet';
 			link.hidden = true;
 			link.removeAttribute('href');
 			return;
@@ -1015,7 +1008,6 @@
 		summary.hidden = false;
 		title.textContent = project.title;
 		subtitle.textContent = (config.owner || '') + '/' + (config.repo || '') + ' is linked and ready to sync with BMAD.';
-		if (launcherMeta) launcherMeta.textContent = project.title;
 
 		if (project.url) {
 			link.hidden = false;

@@ -159,35 +159,37 @@ function doneBugsAndGlobals(bugCards, doneGlobal) {
 
 function renderIntegrationsLauncher() {
 	return `<section class="platform-launcher">
-	<div class="platform-launcher__copy">
-		<h3 class="platform-launcher__title">Boards</h3>
-		<p class="platform-launcher__subtitle">Connect and sync on demand.</p>
-	</div>
-	<div class="platform-launcher__actions">
-		<button class="platform-chip platform-chip--github" type="button" data-open-integration="github">
-			<span class="platform-chip__logo">${platformLogo('github')}</span>
-			<span class="platform-chip__text">
-				<strong>GitHub</strong>
-				<span id="github-launcher-status">Not connected</span>
-				<span class="platform-chip__meta" id="github-launcher-meta">No linked project yet</span>
-			</span>
-		</button>
-		<button class="platform-chip platform-chip--jira" type="button" data-open-integration="jira">
-			<span class="platform-chip__logo">${platformLogo('jira')}</span>
-			<span class="platform-chip__text">
-				<strong>Jira</strong>
-				<span>Coming next</span>
-			</span>
-		</button>
-		<button class="platform-chip platform-chip--azure" type="button" data-open-integration="azure">
-			<span class="platform-chip__logo">${platformLogo('azure')}</span>
-			<span class="platform-chip__text">
-				<strong>Azure DevOps</strong>
-				<span>Coming next</span>
-			</span>
-		</button>
+	<div class="platform-launcher__header">
+		<div class="platform-launcher__copy">
+			<h3 class="platform-launcher__title">Boards</h3>
+			<p class="platform-launcher__subtitle">Connect BMAD with delivery platforms and sync when you want.</p>
+		</div>
+		<div class="platform-launcher__actions">
+			<button class="platform-chip platform-chip--github" type="button" data-open-integration="github">
+				<span class="platform-chip__logo">${platformLogo('github')}</span>
+				<span class="platform-chip__text">
+					<strong>GitHub</strong>
+					<span id="github-launcher-status" class="platform-chip__status">Not connected</span>
+				</span>
+			</button>
+			<button class="platform-chip platform-chip--jira" type="button" data-open-integration="jira">
+				<span class="platform-chip__logo">${platformLogo('jira')}</span>
+				<span class="platform-chip__text">
+					<strong>Jira</strong>
+					<span class="platform-chip__status">Coming next</span>
+				</span>
+			</button>
+			<button class="platform-chip platform-chip--azure" type="button" data-open-integration="azure">
+				<span class="platform-chip__logo">${platformLogo('azure')}</span>
+				<span class="platform-chip__text">
+					<strong>Azure DevOps</strong>
+					<span class="platform-chip__status">Coming next</span>
+				</span>
+			</button>
+		</div>
 	</div>
 	<div class="platform-launcher__summary" id="github-project-summary" hidden>
+		<span class="platform-launcher__summary-label">GitHub Project</span>
 		<div class="platform-launcher__summary-copy">
 			<strong id="github-project-title">No GitHub project connected</strong>
 			<span id="github-project-subtitle">Create or sync a project board to reflect BMAD work in GitHub.</span>
