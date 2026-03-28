@@ -70,6 +70,7 @@ As a new user, I want clear setup and usage guidance so I can adopt the viewer w
 
 As a maintainer, I want the repo to pass a stable quality baseline so packaging and releases stay predictable.
 
+
 ---
 
 ## Epic 5: VS Code Extension Experience
