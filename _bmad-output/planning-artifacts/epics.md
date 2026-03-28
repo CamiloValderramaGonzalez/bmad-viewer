@@ -69,3 +69,22 @@ As a new user, I want clear setup and usage guidance so I can adopt the viewer w
 ### Story 4.3: Release Quality And Lint Stability
 
 As a maintainer, I want the repo to pass a stable quality baseline so packaging and releases stay predictable.
+
+
+---
+
+## Epic 5: VS Code Extension Experience
+
+Turn the viewer into a first-class Visual Studio Code experience so BMAD context can be opened from the editor without relying on a separate browser workflow.
+
+### Story 5.1: Extension Scaffold And Embedded Viewer Host
+
+As a VS Code user, I want an extension container that can host the viewer in the editor so I can open BMAD visually from within my workspace.
+
+### Story 5.2: Workspace BMAD Detection And Local Actions
+
+As a developer, I want the extension to detect the current BMAD workspace and trigger refresh, open and sync actions from VS Code so the editor becomes the main operating surface.
+
+### Story 5.3: VS Code UX, Settings And Distribution
+
+As a maintainer, I want a polished extension UX with settings, activation behavior and packaging strategy so the extension can be adopted and published safely.

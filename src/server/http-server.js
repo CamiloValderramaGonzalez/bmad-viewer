@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { getMimeType } from './mime-types.js';
 import { findAvailablePort } from './port-finder.js';
-import { attachWebSocket, broadcastChange } from './websocket.js';
+import { attachWebSocket, broadcastChange, closeAllConnections } from './websocket.js';
 import { createFileWatcher } from '../watchers/file-watcher.js';
 import { buildDataModel } from '../data/data-model.js';
 import { updateSprintStatusFile } from '../data/sprint-status-updater.js';
@@ -19,9 +19,24 @@ const PUBLIC_DIR = join(__dirname, '..', '..', 'public');
 
 /**
  * Start the bmad-viewer HTTP server.
- * @param {{port: number|null, bmadDir: string, open: boolean}} options
+ * @param {{
+ *   port: number|null,
+ *   bmadDir: string,
+ *   open: boolean,
+ *   interactive?: boolean,
+ *   attachProcessHandlers?: boolean,
+ *   host?: string
+ * }} options
+ * @returns {Promise<{server: import('node:http').Server, port: number, url: string, close: () => Promise<void>}>}
  */
-export async function startServer({ port, bmadDir, open }) {
+export async function startServer({
+	port,
+	bmadDir,
+	open,
+	interactive = true,
+	attachProcessHandlers = interactive,
+	host = '127.0.0.1',
+}) {
 	const actualPort = await findAvailablePort(port);
 
 	// Custom path overrides (can be set via API)
@@ -246,7 +261,7 @@ export async function startServer({ port, bmadDir, open }) {
 	const pendingChanges = [];
 	let debounceTimer = null;
 
-	createFileWatcher(bmadDir, ({ type, path }) => {
+	const watcher = createFileWatcher(bmadDir, ({ type, path }) => {
 		pendingChanges.push(path);
 
 		if (debounceTimer) clearTimeout(debounceTimer);
@@ -257,45 +272,118 @@ export async function startServer({ port, bmadDir, open }) {
 		}, 150);
 	});
 
+	const displayHost = host === '127.0.0.1' ? 'localhost' : host;
+	const url = `http://${displayHost}:${actualPort}`;
+	let stdinHandler = null;
+	let sigintHandler = null;
+	let sigtermHandler = null;
+	let cleanedUp = false;
+
+	async function cleanupResources() {
+		if (cleanedUp) {
+			return;
+		}
+		cleanedUp = true;
+
+		if (debounceTimer) {
+			clearTimeout(debounceTimer);
+			debounceTimer = null;
+		}
+
+		if (stdinHandler && process.stdin.isTTY) {
+			process.stdin.off('data', stdinHandler);
+			try {
+				process.stdin.setRawMode(false);
+			} catch {
+				// Ignore unsupported terminals.
+			}
+			process.stdin.pause();
+		}
+
+		if (sigintHandler) {
+			process.off('SIGINT', sigintHandler);
+		}
+
+		if (sigtermHandler) {
+			process.off('SIGTERM', sigtermHandler);
+		}
+
+		await watcher.close();
+		closeAllConnections();
+	}
+
+	async function close() {
+		await cleanupResources();
+
+		if (!server.listening) {
+			return;
+		}
+
+		await new Promise((resolve) => {
+			server.close(() => resolve());
+		});
+	}
+
+	server.on('close', () => {
+		void cleanupResources();
+	});
+
+	if (attachProcessHandlers) {
+		sigintHandler = () => {
+			console.log('\nShutting down...');
+			void close().finally(() => process.exit(0));
+		};
+
+		sigtermHandler = () => {
+			void close().finally(() => process.exit(0));
+		};
+
+		process.on('SIGINT', sigintHandler);
+		process.on('SIGTERM', sigtermHandler);
+	}
+
 	// Start listening
-	server.listen(actualPort, '127.0.0.1', () => {
-		const url = `http://localhost:${actualPort}`;
+	await new Promise((resolve, reject) => {
+		server.once('error', reject);
+		server.listen(actualPort, host, () => {
+			server.off('error', reject);
 		console.log(`\n  bmad-viewer running at ${url}`);
-		console.log(`  Press o to open in browser, q to quit\n`);
+		if (interactive) {
+			console.log('  Press o to open in browser, q to quit\n');
+		} else {
+			console.log('');
+		}
 
 		if (open) {
 			openBrowser(url);
 		}
 
 		// Listen for keypresses
-		if (process.stdin.isTTY) {
+		if (interactive && process.stdin.isTTY) {
 			process.stdin.setRawMode(true);
 			process.stdin.resume();
-			process.stdin.on('data', (key) => {
+			stdinHandler = (key) => {
 				const ch = key.toString();
 				if (ch === 'o' || ch === 'O') {
 					openBrowser(url);
 					console.log(`  Opening ${url}`);
 				} else if (ch === 'q' || ch === 'Q' || ch === '\u0003') {
 					console.log('\nShutting down...');
-					server.close();
-					process.exit(0);
+					void close().finally(() => process.exit(0));
 				}
-			});
+			};
+			process.stdin.on('data', stdinHandler);
 		}
+		resolve();
+	});
 	});
 
-	// Graceful shutdown
-	process.on('SIGINT', () => {
-		console.log('\nShutting down...');
-		server.close();
-		process.exit(0);
-	});
-
-	process.on('SIGTERM', () => {
-		server.close();
-		process.exit(0);
-	});
+	return {
+		server,
+		port: actualPort,
+		url,
+		close,
+	};
 }
 
 /**

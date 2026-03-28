@@ -1,0 +1,12 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- B shape -->
+  <path d="M5 4C5 3.44772 5.44772 3 6 3H13C15.2091 3 17 4.79086 17 7C17 8.2 16.5 9.3 15.7 10.1C17.1 10.8 18 12.3 18 14C18 16.7614 15.7614 19 13 19H6C5.44772 19 5 18.5523 5 18V4Z" stroke="#C5C5C5" stroke-width="1.6" fill="none"/>
+  <!-- Eye shape -->
+  <path d="M7.5 11.5C7.5 11.5 9.5 8.5 12 8.5C14.5 8.5 16.5 11.5 16.5 11.5C16.5 11.5 14.5 14.5 12 14.5C9.5 14.5 7.5 11.5 7.5 11.5Z" stroke="#C5C5C5" stroke-width="1.4" fill="none"/>
+  <!-- Pupil -->
+  <circle cx="12" cy="11.5" r="2" fill="#C5C5C5"/>
+  <!-- Chart bars below eye -->
+  <rect x="10" y="16" width="1.2" height="2" rx="0.3" fill="#C5C5C5"/>
+  <rect x="11.8" y="15.5" width="1.2" height="2.5" rx="0.3" fill="#C5C5C5"/>
+  <rect x="13.6" y="15" width="1.2" height="3" rx="0.3" fill="#C5C5C5"/>
+</svg>

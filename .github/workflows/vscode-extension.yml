@@ -1,0 +1,130 @@
+name: VS Code Extension
+
+on:
+  pull_request:
+    paths:
+      - 'apps/vscode-extension/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - master
+    paths:
+      - 'apps/vscode-extension/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/vscode-extension
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/vscode-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate extension
+        run: npm run check
+
+      - name: Package VSIX
+        run: npm run package:vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bmad-viewer-vscode
+          path: apps/vscode-extension/*.vsix
+
+  publish-marketplace:
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: apps/vscode-extension
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/vscode-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check if extension files changed
+        id: changes
+        run: |
+          LAST_TAG=$(git tag --list 'vscode-extension-v*' --sort=-v:refname | head -n1)
+          if [ -z "$LAST_TAG" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            CHANGED=$(git diff --name-only "$LAST_TAG"..HEAD -- . ../../src/ ../../public/ | wc -l)
+            if [ "$CHANGED" -gt 0 ]; then
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Bump patch version
+        if: steps.changes.outputs.changed == 'true'
+        id: bump
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          npm version "$NEW_VERSION" --no-git-tag-version
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Bumped version: $CURRENT -> $NEW_VERSION"
+
+      - name: Package VSIX
+        if: steps.changes.outputs.changed == 'true'
+        run: npm run package:vsix
+
+      - name: Publish to Visual Studio Marketplace
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT secret is not configured. Add it in repo Settings > Secrets."
+            exit 1
+          fi
+          npx @vscode/vsce publish -p "$VSCE_PAT" --baseImagesUrl https://raw.githubusercontent.com/RoberthDudiver/bmad-viewer/master/apps/vscode-extension
+
+      - name: Commit version bump and tag
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          cd ../..
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add apps/vscode-extension/package.json
+          git commit -m "chore: bump vscode extension to v${{ steps.bump.outputs.version }}"
+          git tag "vscode-extension-v${{ steps.bump.outputs.version }}"
+          git push origin master --tags
