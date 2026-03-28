@@ -2,7 +2,7 @@
 	"name": "bmad-viewer-vscode",
 	"displayName": "BMAD Viewer",
 	"description": "Open the BMAD viewer inside VS Code and work with your BMAD workspace without leaving the editor.",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"publisher": "rdudiver",
 	"icon": "media/logo.png",
 	"license": "MIT",
