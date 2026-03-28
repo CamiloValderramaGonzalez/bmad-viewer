@@ -4,6 +4,7 @@
 	"description": "Open the BMAD viewer inside VS Code and work with your BMAD workspace without leaving the editor.",
 	"version": "0.1.1",
 	"publisher": "rdudiver",
+	"icon": "media/logo.png",
 	"license": "MIT",
 	"private": true,
 	"repository": {
