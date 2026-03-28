@@ -1,0 +1,86 @@
+name: VS Code Extension
+
+on:
+  pull_request:
+    paths:
+      - 'apps/vscode-extension/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+  push:
+    branches:
+      - master
+    tags:
+      - 'vscode-extension-v*'
+    paths:
+      - 'apps/vscode-extension/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/vscode-extension
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/vscode-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate extension
+        run: npm run check
+
+      - name: Package VSIX
+        run: npm run package:vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bmad-viewer-vscode
+          path: apps/vscode-extension/*.vsix
+
+  publish-marketplace:
+    if: startsWith(github.ref, 'refs/tags/vscode-extension-v')
+    needs: package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/vscode-extension
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/vscode-extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Publish to Visual Studio Marketplace when VSCE_PAT is present
+        shell: bash
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "VSCE_PAT is not configured, skipping marketplace publish."
+            exit 0
+          fi
+
+          npx @vscode/vsce publish -p "$VSCE_PAT"

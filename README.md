@@ -33,6 +33,10 @@ npx bmad-viewer
 
 Auto-detects your `_bmad/` folder, opens your browser, dashboard ready.
 
+**From VS Code:**
+
+The repo now includes a packaged extension project in [`apps/vscode-extension`](./apps/vscode-extension/README.md) so the same dashboard can live in the editor sidebar.
+
 ## What you get
 
 **Wiki / Catalog** — Browse all BMAD modules (Core, BMB, BMM, CIS) with a navigable sidebar. Click any agent or workflow to read its full description rendered as clean HTML.
