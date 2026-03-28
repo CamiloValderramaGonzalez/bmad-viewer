@@ -18,6 +18,10 @@
 	"engines": {
 		"vscode": "^1.90.0"
 	},
+	"galleryBanner": {
+		"color": "#0a1628",
+		"theme": "dark"
+	},
 	"categories": [
 		"Other"
 	],
