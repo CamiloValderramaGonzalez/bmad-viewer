@@ -5,10 +5,10 @@ Open the BMAD dashboard inside VS Code, backed by the same local BMAD workspace 
 ## Screenshots
 
 ### Sidebar navigation with project detection
-![Sidebar with Open Dashboard](media/screenshot-sidebar.png)
+![Sidebar with Open Dashboard](https://raw.githubusercontent.com/RoberthDudiver/bmad-viewer/master/apps/vscode-extension/media/screenshot-sidebar.png)
 
 ### Full dashboard in the editor panel
-![Full dashboard in editor](media/screenshot-dashboard.png)
+![Full dashboard in editor](https://raw.githubusercontent.com/RoberthDudiver/bmad-viewer/master/apps/vscode-extension/media/screenshot-dashboard.png)
 
 ## Features
 
