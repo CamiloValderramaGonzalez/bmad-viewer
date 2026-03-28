@@ -2,12 +2,54 @@
 
 Open the BMAD dashboard inside VS Code, backed by the same local BMAD workspace and sync capabilities that power the standalone viewer.
 
-## What it does
+## Screenshots
 
-- Adds a dedicated `BMAD Viewer` icon to the VS Code activity bar.
-- Detects the current workspace BMAD root by looking for `_bmad/`.
-- Starts an embedded local `bmad-viewer` server for the workspace and renders it inside a VS Code webview.
-- Keeps drag-and-drop board interactions, wiki browsing, and platform sync flows available without leaving the editor.
+### Sidebar navigation with project detection
+![Sidebar with Open Dashboard](media/screenshot-sidebar.png)
+
+### Full dashboard in the editor panel
+![Full dashboard in editor](media/screenshot-dashboard.png)
+
+## Features
+
+- **Activity Bar integration** — Dedicated BMAD Viewer icon in the VS Code sidebar for quick access.
+- **Automatic project detection** — Detects `_bmad/` folders in your workspace automatically.
+- **Full editor dashboard** — Opens the complete BMAD Viewer in the main editor area, not cramped in a small panel.
+- **Kanban board** — Drag-and-drop board with Backlog, Ready for Dev, In Progress, Done, and Blocked columns.
+- **Epic and story management** — Browse and manage epics, stories, and tasks directly from VS Code.
+- **Project wiki** — Access your project documentation, product briefs, and technical specs without leaving the editor.
+- **Sprint dashboard** — View sprint progress, status, and planning at a glance.
+- **Search** — Full-text search across your BMAD project (Ctrl+K).
+- **Quick start guide** — Built-in sidebar guide to get started in seconds.
+- **Open in browser** — Launch the dashboard in your default browser for a wider view.
+- **Multi-folder workspaces** — Switch between multiple BMAD projects in multi-root workspaces.
+- **Configurable port** — Set your preferred localhost port for the embedded server.
+- **Auto-open on startup** — Optionally open the dashboard automatically when VS Code starts.
+- **Light and dark theme support** — Adapts to your VS Code theme.
+- **Platform sync** — Sync stories and tasks with GitHub Issues (Jira and Azure DevOps coming soon).
+
+## Getting started
+
+1. Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=rdudiver.bmad-viewer-vscode).
+2. Open a folder that contains a `_bmad/` directory.
+3. Click the BMAD Viewer icon in the Activity Bar.
+4. Click **Open Dashboard** to launch the full viewer in the editor.
+
+## Extension settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `bmadViewer.openOnStartup` | `false` | Open the dashboard automatically when VS Code starts with a workspace |
+| `bmadViewer.preferredPort` | `4100` | Preferred localhost port for the embedded server |
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `BMAD Viewer: Open Dashboard` | Open the full dashboard in the editor panel |
+| `BMAD Viewer: Refresh` | Refresh the dashboard and sidebar |
+| `BMAD Viewer: Open In Browser` | Open the dashboard in your default browser |
+| `BMAD Viewer: Select Workspace Folder` | Choose which workspace folder to use |
 
 ## Local development
 
@@ -18,29 +60,16 @@ npm run check
 npm run package:vsix
 ```
 
-The packaged `.vsix` file is emitted in this folder. Install it locally with:
+Install locally with:
 
 ```bash
-code --install-extension bmad-viewer-vscode-0.1.0.vsix
+code --install-extension bmad-viewer-vscode-*.vsix
 ```
 
-`npm run check` and `npm run package:vsix` automatically vendor the current repo's `src/` and `public/` assets into the extension package, so the embedded viewer stays aligned with the main project.
+## CI/CD
 
-## Publish to Visual Studio Marketplace
+The GitHub Actions workflow at `.github/workflows/vscode-extension.yml`:
 
-1. Create or reuse a Visual Studio Marketplace publisher for the `publisher` id in `package.json`.
-2. Generate a Personal Access Token in Azure DevOps with Marketplace publish permissions.
-3. Run:
-
-```bash
-cd apps/vscode-extension
-npx @vscode/vsce publish -p YOUR_VSCE_PAT
-```
-
-## CI packaging
-
-This repo includes a GitHub Actions workflow at `.github/workflows/vscode-extension.yml` that:
-
-- packages the extension on pull requests and pushes to `master`
-- uploads the generated `.vsix` as a workflow artifact
-- can publish to the Marketplace on version tags when `VSCE_PAT` is configured
+- Packages the extension on pull requests and pushes to `master`
+- Uploads the generated `.vsix` as a workflow artifact
+- On merge to `master`: auto-bumps the patch version, publishes to the Marketplace, commits the version bump, and creates a git tag
