@@ -1,0 +1,135 @@
+{
+	"name": "bmad-viewer-vscode",
+	"displayName": "BMAD Viewer",
+	"description": "Open the BMAD viewer inside VS Code and work with your BMAD workspace without leaving the editor.",
+	"version": "0.1.0",
+	"publisher": "rdudiver",
+	"license": "MIT",
+	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/RoberthDudiver/bmad-viewer"
+	},
+	"homepage": "https://github.com/RoberthDudiver/bmad-viewer",
+	"bugs": {
+		"url": "https://github.com/RoberthDudiver/bmad-viewer/issues"
+	},
+	"engines": {
+		"vscode": "^1.90.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"keywords": [
+		"bmad",
+		"viewer",
+		"kanban",
+		"agile",
+		"github",
+		"project-management"
+	],
+	"main": "./extension.cjs",
+	"activationEvents": [
+		"onView:bmadViewer.dashboard",
+		"onCommand:bmadViewer.focus",
+		"onCommand:bmadViewer.refresh",
+		"onCommand:bmadViewer.openInBrowser",
+		"onCommand:bmadViewer.selectWorkspaceFolder"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "bmadViewer.focus",
+				"title": "BMAD Viewer: Open Dashboard",
+				"icon": "$(dashboard)"
+			},
+			{
+				"command": "bmadViewer.refresh",
+				"title": "BMAD Viewer: Refresh",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "bmadViewer.openInBrowser",
+				"title": "BMAD Viewer: Open In Browser",
+				"icon": "$(globe)"
+			},
+			{
+				"command": "bmadViewer.selectWorkspaceFolder",
+				"title": "BMAD Viewer: Select Workspace Folder",
+				"icon": "$(folder-opened)"
+			}
+		],
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "bmadViewer",
+					"title": "BMAD Viewer",
+					"icon": "media/bmad-activity-icon.svg"
+				}
+			]
+		},
+		"views": {
+			"bmadViewer": [
+				{
+					"id": "bmadViewer.dashboard",
+					"name": "Dashboard",
+					"type": "webview"
+				}
+			]
+		},
+		"menus": {
+			"view/title": [
+				{
+					"command": "bmadViewer.refresh",
+					"when": "view == bmadViewer.dashboard",
+					"group": "navigation@1"
+				},
+				{
+					"command": "bmadViewer.openInBrowser",
+					"when": "view == bmadViewer.dashboard",
+					"group": "navigation@2"
+				},
+				{
+					"command": "bmadViewer.selectWorkspaceFolder",
+					"when": "view == bmadViewer.dashboard",
+					"group": "navigation@3"
+				}
+			]
+		},
+		"configuration": {
+			"title": "BMAD Viewer",
+			"properties": {
+				"bmadViewer.openOnStartup": {
+					"type": "boolean",
+					"default": false,
+					"description": "Open the BMAD Viewer container automatically when VS Code starts with a workspace."
+				},
+				"bmadViewer.preferredPort": {
+					"type": "number",
+					"default": 4100,
+					"minimum": 1024,
+					"maximum": 65535,
+					"description": "Preferred localhost port for the embedded BMAD Viewer server. The next available port is used if this one is busy."
+				}
+			}
+		}
+	},
+	"scripts": {
+		"prepare-vendor": "node scripts/prepare-vendor.mjs",
+		"precheck": "npm run prepare-vendor",
+		"check": "node scripts/check.mjs",
+		"prepackage:vsix": "npm run prepare-vendor",
+		"package:vsix": "vsce package",
+		"publish:marketplace": "vsce publish"
+	},
+	"dependencies": {
+		"chokidar": "^4.0.1",
+		"fuse.js": "^7.0.0",
+		"js-yaml": "^4.1.0",
+		"marked": "^15.0.4",
+		"ws": "^8.19.0"
+	},
+	"devDependencies": {
+		"@vscode/vsce": "^3.6.2"
+	}
+}

@@ -1,6 +1,7 @@
 # Dependencies
 node_modules/
 package-lock.json
+!apps/vscode-extension/package-lock.json
 
 # Build outputs
 dist/
@@ -38,6 +39,8 @@ yarn-error.log*
 .tmp/
 temp/
 *.tmp
+*.vsix
 
 # Local BMAD viewer state
 .bmad-viewer/
+apps/vscode-extension/vendor/
