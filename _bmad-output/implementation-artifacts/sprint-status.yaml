@@ -31,3 +31,10 @@ development_status:
   4-2-documentation-and-onboarding-refresh: ready-for-dev
   4-3-release-quality-and-lint-stability: backlog
   epic-4-retrospective: optional
+
+  # Epic 5: VS Code Extension Experience
+  epic-5: backlog
+  5-1-extension-scaffold-and-embedded-viewer-host: ready-for-dev
+  5-2-workspace-bmad-detection-and-local-actions: backlog
+  5-3-vs-code-ux-settings-and-distribution: backlog
+  epic-5-retrospective: optional
