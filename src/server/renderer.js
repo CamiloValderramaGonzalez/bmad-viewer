@@ -40,9 +40,11 @@ export function renderDashboard(dataModel) {
 
 	// Build project view
 	const storyList = project.storyList || [];
-	const pending = storyList.filter((s) => s.status === 'backlog' || s.status === 'ready-for-dev');
+	const backlog = storyList.filter((s) => s.status === 'backlog');
+	const readyForDev = storyList.filter((s) => s.status === 'ready-for-dev');
 	const inProgress = storyList.filter((s) => s.status === 'in-progress');
-	const done = storyList.filter((s) => s.status === 'done' || s.status === 'review');
+	const review = storyList.filter((s) => s.status === 'review');
+	const done = storyList.filter((s) => s.status === 'done');
 
 	const noData = project.epics.length === 0 && project.stories.total === 0;
 	const configPanel = `<div class="path-config-panel${noData ? '' : ' path-config-panel--collapsed'}" id="path-config-panel">
@@ -95,12 +97,17 @@ export function renderDashboard(dataModel) {
 		epic: b.id,
 		cardType: 'bug',
 	}));
-	const doneBugs = bugCards.filter(b => b.status === 'done');
-	const activeBugs = bugCards.filter(b => b.status !== 'done');
+	const boardColumns = [
+		{ key: 'backlog', title: 'Backlog', stories: [...backlog, ...pendingGlobal, ...bugCards.filter((card) => card.status === 'backlog')] },
+		{ key: 'ready-for-dev', title: 'Ready for Dev', stories: [...readyForDev, ...bugCards.filter((card) => card.status === 'ready-for-dev')] },
+		{ key: 'in-progress', title: 'In Progress', stories: [...inProgress, ...bugCards.filter((card) => card.status === 'in-progress')] },
+		{ key: 'review', title: 'Review', stories: [...review, ...bugCards.filter((card) => card.status === 'review')] },
+		{ key: 'done', title: 'Done', stories: [...done, ...doneBugsAndGlobals(bugCards, doneGlobal)] },
+	];
 
-	const allPending = [...pending, ...pendingGlobal, ...activeBugs.filter(b => b.status === 'backlog')];
-	const allInProgress = [...inProgress, ...activeBugs.filter(b => b.status === 'in-progress')];
-	const allDone = [...done, ...doneBugs, ...doneGlobal];
+	const boardMessage = project.board?.editable
+		? '<div class="kanban-toolbar"><p class="kanban-toolbar__hint">Drag story cards between BMAD states. The viewer saves <code>sprint-status</code> locally and syncs connected platforms when available.</p><span class="kanban-toolbar__status" id="board-save-status" aria-live="polite"></span></div>'
+		: '<div class="kanban-toolbar"><p class="kanban-toolbar__hint">Read-only board. Add a writable <code>sprint-status</code> file to enable drag and drop updates.</p></div>';
 
 	const projectContent = `<div id="project-view" hidden>
 	<div id="project-dashboard">
@@ -110,14 +117,16 @@ export function renderDashboard(dataModel) {
 			pending: project.stories.pending,
 			inProgress: project.stories.inProgress,
 			done: project.stories.done,
+			inProgressLabel: 'Active',
 		})}
 		${ProgressBar({ completed: project.stories.done, total: project.stories.total })}
-		<div class="kanban">
-			${KanbanColumn({ title: 'Pending', stories: allPending })}
-			${KanbanColumn({ title: 'In Progress', stories: allInProgress })}
-			${KanbanColumn({ title: 'Done', stories: allDone })}
+		${renderIntegrationsLauncher()}
+		${boardMessage}
+		<div class="kanban" data-board-editable="${project.board?.editable ? 'true' : 'false'}">
+			${boardColumns.map((column) => KanbanColumn({ title: column.title, stories: column.stories, columnId: column.key, editable: project.board?.editable })).join('\n')}
 		</div>
 	</div>
+	${renderIntegrationsModal()}
 	<main class="content-area" id="project-content-area" hidden>
 		<div class="content-area__breadcrumb" id="project-breadcrumb"></div>
 		<div class="content-area__body" id="project-content-body"></div>
@@ -139,6 +148,137 @@ export function renderDashboard(dataModel) {
 		contentMapJson: JSON.stringify(contentMap),
 		projectName: config.project_name,
 	});
+}
+
+function doneBugsAndGlobals(bugCards, doneGlobal) {
+	return [
+		...bugCards.filter((card) => card.status === 'done'),
+		...doneGlobal,
+	];
+}
+
+function renderIntegrationsLauncher() {
+	return `<section class="platform-launcher">
+	<div class="platform-launcher__copy">
+		<h3 class="platform-launcher__title">Boards</h3>
+		<p class="platform-launcher__subtitle">Connect and sync on demand.</p>
+	</div>
+	<div class="platform-launcher__actions">
+		<button class="platform-chip platform-chip--github" type="button" data-open-integration="github">
+			<span class="platform-chip__logo">${platformLogo('github')}</span>
+			<span class="platform-chip__text">
+				<strong>GitHub</strong>
+				<span id="github-launcher-status">Not connected</span>
+				<span class="platform-chip__meta" id="github-launcher-meta">No linked project yet</span>
+			</span>
+		</button>
+		<button class="platform-chip platform-chip--jira" type="button" data-open-integration="jira">
+			<span class="platform-chip__logo">${platformLogo('jira')}</span>
+			<span class="platform-chip__text">
+				<strong>Jira</strong>
+				<span>Coming next</span>
+			</span>
+		</button>
+		<button class="platform-chip platform-chip--azure" type="button" data-open-integration="azure">
+			<span class="platform-chip__logo">${platformLogo('azure')}</span>
+			<span class="platform-chip__text">
+				<strong>Azure DevOps</strong>
+				<span>Coming next</span>
+			</span>
+		</button>
+	</div>
+	<div class="platform-launcher__summary" id="github-project-summary" hidden>
+		<div class="platform-launcher__summary-copy">
+			<strong id="github-project-title">No GitHub project connected</strong>
+			<span id="github-project-subtitle">Create or sync a project board to reflect BMAD work in GitHub.</span>
+		</div>
+		<a class="platform-launcher__summary-link" id="github-project-link" href="#" target="_blank" rel="noreferrer" hidden>Open project</a>
+	</div>
+</section>`;
+}
+
+function renderIntegrationsModal() {
+	return `<div class="integration-modal" id="integration-modal" role="dialog" aria-modal="true" aria-label="Board integrations" hidden>
+	<div class="integration-modal__backdrop" id="integration-modal-backdrop"></div>
+	<div class="integration-modal__content">
+		<div class="integration-modal__header">
+			<div>
+				<h3 class="integration-modal__title">Board Integrations</h3>
+				<p class="integration-modal__subtitle">Choose a platform, connect the target project and sync when you want.</p>
+			</div>
+			<button class="integration-modal__close" id="integration-modal-close" aria-label="Close integrations">&times;</button>
+		</div>
+		<div class="integration-modal__tabs">
+			<button class="integration-modal__tab integration-modal__tab--active" type="button" data-provider-tab="github">
+				${platformLogo('github')} GitHub
+			</button>
+			<button class="integration-modal__tab" type="button" data-provider-tab="jira">
+				${platformLogo('jira')} Jira
+			</button>
+			<button class="integration-modal__tab" type="button" data-provider-tab="azure">
+				${platformLogo('azure')} Azure DevOps
+			</button>
+		</div>
+		<div class="integration-modal__body">
+			<section class="integration-pane integration-pane--active" id="integration-pane-github" data-provider-pane="github">
+				<div class="integration-pane__intro">
+					<div>
+						<h4>GitHub Issues Sync</h4>
+						<p>Map BMAD epics and stories to GitHub Issues and sync them on demand.</p>
+					</div>
+					<span class="integration-panel__badge" id="github-connection-badge">Not connected</span>
+				</div>
+				<div class="integration-panel__grid">
+					<label class="integration-panel__field">
+						<span>Owner or org</span>
+						<input type="text" id="github-owner-input" class="integration-panel__input" placeholder="e.g. octo-org" />
+					</label>
+					<label class="integration-panel__field">
+						<span>Repository</span>
+						<input type="text" id="github-repo-input" class="integration-panel__input" placeholder="e.g. my-bmad-project" />
+					</label>
+					<label class="integration-panel__field">
+						<span>Personal access token</span>
+						<input type="password" id="github-token-input" class="integration-panel__input" placeholder="Paste your GitHub token" />
+					</label>
+				</div>
+				<div class="integration-panel__actions">
+					<button class="integration-panel__btn" id="github-connect-btn">Connect GitHub</button>
+					<button class="integration-panel__btn integration-panel__btn--secondary" id="github-project-btn">Sync Project Board</button>
+					<button class="integration-panel__btn integration-panel__btn--secondary" id="github-preview-btn">Preview Sync</button>
+					<button class="integration-panel__btn integration-panel__btn--secondary" id="github-sync-btn">Sync Now</button>
+				</div>
+		<p class="integration-panel__note">This token is stored only in the current project under <code>.bmad-viewer</code>. Sync Project Board creates or reuses a GitHub Project and maps BMAD work into it.</p>
+		<p class="integration-panel__status" id="github-integration-status" aria-live="polite"></p>
+		<div class="integration-panel__preview" id="github-sync-preview" hidden></div>
+	</section>
+			<section class="integration-pane" id="integration-pane-jira" data-provider-pane="jira" hidden>
+				<div class="integration-pane__placeholder">
+					<div class="integration-pane__placeholder-logo">${platformLogo('jira')}</div>
+					<h4>Jira is next</h4>
+					<p>The next phase will add project detection, workflow transition mapping and manual sync preview for Jira.</p>
+				</div>
+			</section>
+			<section class="integration-pane" id="integration-pane-azure" data-provider-pane="azure" hidden>
+				<div class="integration-pane__placeholder">
+					<div class="integration-pane__placeholder-logo">${platformLogo('azure')}</div>
+					<h4>Azure DevOps is next</h4>
+					<p>The next phase will add process-template detection, work item mapping and manual sync preview for Azure DevOps.</p>
+				</div>
+			</section>
+		</div>
+	</div>
+</div>`;
+}
+
+function platformLogo(provider) {
+	if (provider === 'github') {
+		return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.04c-3.34.73-4.04-1.41-4.04-1.41-.55-1.36-1.33-1.72-1.33-1.72-1.09-.73.08-.72.08-.72 1.2.08 1.84 1.2 1.84 1.2 1.08 1.8 2.82 1.28 3.51.98.11-.76.42-1.28.76-1.57-2.67-.3-5.47-1.31-5.47-5.86 0-1.3.47-2.36 1.23-3.19-.12-.3-.53-1.52.12-3.16 0 0 1.01-.32 3.3 1.22a11.7 11.7 0 0 1 6 0c2.28-1.54 3.29-1.22 3.29-1.22.66 1.64.25 2.86.12 3.16.77.83 1.23 1.89 1.23 3.19 0 4.56-2.8 5.55-5.48 5.85.43.37.82 1.1.82 2.22v3.29c0 .32.21.69.83.57A12 12 0 0 0 12 .5Z"/></svg>`;
+	}
+	if (provider === 'jira') {
+		return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.9 11.1 12.9 2.1a3 3 0 0 0-4.2 0l-1.9 1.9 2.4 2.4 1.4-1.4a1 1 0 0 1 1.4 0l2 2-5.6 5.6a3 3 0 0 0 0 4.2l3.8 3.8 2.4-2.4-3.8-3.8a1 1 0 0 1 0-1.4l5.6-5.6 2 2a1 1 0 0 1 0 1.4l-1.4 1.4 2.4 2.4 1.9-1.9a3 3 0 0 0 0-4.2Z"/></svg>`;
+	}
+	return `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2 3.2 11 2v9H2V3.2Zm10 0 10-1.2V11H12V3.2ZM2 12h9v10L2 20.8V12Zm10 0h10v10l-10-1.2V12Z"/></svg>`;
 }
 
 /**
