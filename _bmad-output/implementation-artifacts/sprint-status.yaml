@@ -1,0 +1,33 @@
+generated: 2026-03-28
+project: bmad-viewer
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts/stories
+
+development_status:
+  # Epic 1: Viewer Foundation
+  epic-1: done
+  1-1-cli-detection-and-local-server-startup: done
+  1-2-wiki-navigation-and-search-experience: done
+  1-3-static-output-generation: done
+  epic-1-retrospective: optional
+
+  # Epic 2: Real BMAD Board Workflow
+  epic-2: in-progress
+  2-1-load-planning-and-implementation-artifacts: done
+  2-2-drag-and-drop-local-status-persistence: done
+  2-3-board-ux-polish-and-status-feedback: in-progress
+  epic-2-retrospective: optional
+
+  # Epic 3: External Platform Sync
+  epic-3: in-progress
+  3-1-github-issues-and-project-board-sync: in-progress
+  3-2-jira-connector-and-state-mapping: backlog
+  3-3-azure-devops-connector-and-state-mapping: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Product Quality And Adoption
+  epic-4: in-progress
+  4-1-test-coverage-for-board-and-integrations: done
+  4-2-documentation-and-onboarding-refresh: ready-for-dev
+  4-3-release-quality-and-lint-stability: backlog
+  epic-4-retrospective: optional
