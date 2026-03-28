@@ -116,7 +116,7 @@ jobs:
             echo "::error::VSCE_PAT secret is not configured. Add it in repo Settings > Secrets."
             exit 1
           fi
-          npx @vscode/vsce publish -p "$VSCE_PAT"
+          npx @vscode/vsce publish -p "$VSCE_PAT" --baseImagesUrl https://raw.githubusercontent.com/RoberthDudiver/bmad-viewer/master/apps/vscode-extension
 
       - name: Commit version bump and tag
         if: steps.changes.outputs.changed == 'true'

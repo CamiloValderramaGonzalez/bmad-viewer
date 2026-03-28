@@ -119,17 +119,30 @@ class BmadServerManager {
 			const viewerRoot = path.join(this.context.extensionPath, 'vendor', 'bmad-viewer');
 			const startServerUrl = pathToFileURL(path.join(viewerRoot, 'src', 'server', 'http-server.js')).href;
 			const detectBmadUrl = pathToFileURL(path.join(viewerRoot, 'src', 'data', 'bmad-detector.js')).href;
+			const dataModelUrl = pathToFileURL(path.join(viewerRoot, 'src', 'data', 'data-model.js')).href;
 
 			this.viewerModulesPromise = Promise.all([
 				import(startServerUrl),
 				import(detectBmadUrl),
-			]).then(([serverModule, detectorModule]) => ({
+				import(dataModelUrl),
+			]).then(([serverModule, detectorModule, dataModelModule]) => ({
 				startServer: serverModule.startServer,
 				detectBmadDir: detectorModule.detectBmadDir,
+				buildDataModel: dataModelModule.buildDataModel,
 			}));
 		}
 
 		return this.viewerModulesPromise;
+	}
+
+	async getProjectStats(bmadDir) {
+		try {
+			const { buildDataModel } = await this.loadViewerModules();
+			const { project } = buildDataModel(bmadDir);
+			return project?.stories ?? null;
+		} catch {
+			return null;
+		}
 	}
 
 	async dispose() {
@@ -284,6 +297,9 @@ class BmadSidebarProvider {
 
 		try {
 			const state = await this.serverManager.getWorkspaceState();
+			if (state.bmadDir) {
+				state.stats = await this.serverManager.getProjectStats(state.bmadDir);
+			}
 			this.webviewView.webview.html = renderSidebar(this.webviewView.webview, logoUri, state);
 		} catch (error) {
 			this.webviewView.webview.html = renderSidebar(this.webviewView.webview, logoUri, { workspaceFolder: null, bmadDir: null, error: error instanceof Error ? error.message : 'Unknown error' });
@@ -292,6 +308,40 @@ class BmadSidebarProvider {
 }
 
 // ── Sidebar HTML ───────────────────────────────────────────────────
+
+function renderStatsWidget(stats) {
+	const total = stats.total || 0;
+	const done = stats.done || 0;
+	const pending = stats.pending || 0;
+	const inProgress = stats.inProgress || 0;
+	const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+	return `
+		<div class="stats-widget">
+			<div class="stats-grid">
+				<div class="stat">
+					<span class="stat-value stories">${total}</span>
+					<span class="stat-label">Stories</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value pending">${pending}</span>
+					<span class="stat-label">Pending</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value active">${inProgress}</span>
+					<span class="stat-label">Active</span>
+				</div>
+				<div class="stat">
+					<span class="stat-value done">${done}</span>
+					<span class="stat-label">Done</span>
+				</div>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill" style="width:${pct}%"></div>
+			</div>
+			<div class="progress-label">${pct}% complete</div>
+		</div>`;
+}
 
 function renderSidebar(webview, logoUri, state) {
 	const nonce = getNonce();
@@ -323,11 +373,14 @@ function renderSidebar(webview, logoUri, state) {
 			</div>
 			<button class="secondary" data-action="select-workspace-folder">Change Folder</button>`;
 	} else {
+		const stats = state.stats;
+		const statsHtml = stats ? renderStatsWidget(stats) : '';
 		content = `
 			<div class="status ok">
 				<span class="status-icon">&#10003;</span>
 				<span>BMAD project detected in <strong>${escapeHtml(state.workspaceFolder.name)}</strong></span>
 			</div>
+			${statsHtml}
 			<button data-action="open-dashboard">Open Dashboard</button>
 			<div class="links">
 				<button class="link" data-action="open-in-browser">Open in Browser</button>
@@ -473,6 +526,58 @@ function renderSidebar(webview, logoUri, state) {
 			line-height: 1.8;
 			color: var(--vscode-descriptionForeground);
 			font-size: 12px;
+		}
+		.stats-widget {
+			width: 100%;
+			padding: 12px;
+			border-radius: 10px;
+			border: 1px solid var(--vscode-panel-border);
+			background: color-mix(in srgb, var(--vscode-editor-background) 80%, var(--vscode-button-background) 20%);
+		}
+		.stats-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 10px;
+			margin-bottom: 10px;
+		}
+		.stat {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 2px;
+		}
+		.stat-value {
+			font-size: 20px;
+			font-weight: 700;
+			line-height: 1.2;
+		}
+		.stat-value.stories { color: var(--vscode-charts-blue, #3794ff); }
+		.stat-value.pending { color: var(--vscode-charts-yellow, #cca700); }
+		.stat-value.active { color: var(--vscode-charts-orange, #d18616); }
+		.stat-value.done { color: var(--vscode-charts-green, #89d185); }
+		.stat-label {
+			font-size: 11px;
+			color: var(--vscode-descriptionForeground);
+			text-transform: uppercase;
+			letter-spacing: 0.3px;
+		}
+		.progress-bar {
+			height: 6px;
+			border-radius: 3px;
+			background: var(--vscode-progressBar-background, rgba(255,255,255,0.1));
+			overflow: hidden;
+			margin-bottom: 4px;
+		}
+		.progress-fill {
+			height: 100%;
+			border-radius: 3px;
+			background: var(--vscode-charts-green, #89d185);
+			transition: width 0.3s ease;
+		}
+		.progress-label {
+			font-size: 11px;
+			color: var(--vscode-descriptionForeground);
+			text-align: center;
 		}
 	</style>
 </head>

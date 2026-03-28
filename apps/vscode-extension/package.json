@@ -2,7 +2,7 @@
 	"name": "bmad-viewer-vscode",
 	"displayName": "BMAD Viewer",
 	"description": "Open the BMAD viewer inside VS Code and work with your BMAD workspace without leaving the editor.",
-	"version": "0.1.5",
+	"version": "0.5.0",
 	"publisher": "rdudiver",
 	"icon": "media/logo.png",
 	"license": "MIT",
@@ -124,8 +124,8 @@
 		"precheck": "npm run prepare-vendor",
 		"check": "node scripts/check.mjs",
 		"prepackage:vsix": "npm run prepare-vendor",
-		"package:vsix": "vsce package",
-		"publish:marketplace": "vsce publish"
+		"package:vsix": "vsce package --baseImagesUrl https://raw.githubusercontent.com/RoberthDudiver/bmad-viewer/master/apps/vscode-extension",
+		"publish:marketplace": "vsce publish --baseImagesUrl https://raw.githubusercontent.com/RoberthDudiver/bmad-viewer/master/apps/vscode-extension"
 	},
 	"dependencies": {
 		"chokidar": "^4.0.1",
