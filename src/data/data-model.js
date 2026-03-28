@@ -287,6 +287,7 @@ function buildProjectData(outputPath, aggregator, options) {
 	const customEpicsPath = options?.customEpicsPath;
 	const project = {
 		sprintStatus: null,
+		board: { editable: false, sprintStatusPath: null, sprintStatusFormat: null },
 		stories: { total: 0, pending: 0, inProgress: 0, done: 0 },
 		storyList: [],
 		epics: [],
@@ -294,11 +295,6 @@ function buildProjectData(outputPath, aggregator, options) {
 		bugs: [],
 		pendingItems: [],
 	};
-
-	if (!existsSync(outputPath)) {
-		loadCustomEpicsFile(customEpicsPath, project, aggregator);
-		return project;
-	}
 
 	// Parse sprint-status (yaml or md)
 	const sprintStatusPaths = [
@@ -328,6 +324,7 @@ function buildProjectData(outputPath, aggregator, options) {
 			if (result.data?.development_status) {
 				const epicNames = parseEpicNamesFromComments(raw);
 				project.sprintStatus = result.data;
+				project.board = { editable: true, sprintStatusPath: statusPath, sprintStatusFormat: 'yaml' };
 				const status = result.data.development_status;
 				const epicMap = {};
 
@@ -349,8 +346,8 @@ function buildProjectData(outputPath, aggregator, options) {
 					// Story entry
 					project.stories.total++;
 					if (value === 'backlog' || value === 'ready-for-dev') project.stories.pending++;
-					else if (value === 'in-progress') project.stories.inProgress++;
-					else if (value === 'done' || value === 'review') project.stories.done++;
+					else if (value === 'in-progress' || value === 'review') project.stories.inProgress++;
+					else if (value === 'done') project.stories.done++;
 
 					const parts = key.split('-');
 					const epicNum = parts[0];
@@ -370,6 +367,7 @@ function buildProjectData(outputPath, aggregator, options) {
 
 			// Fallback: try markdown table format (### Epic N: Name + | N.M | desc | status |)
 			if (raw && parseSprintStatusMarkdown(raw, project)) {
+				project.board = { editable: true, sprintStatusPath: statusPath, sprintStatusFormat: 'markdown' };
 				break;
 			}
 		}
@@ -711,8 +709,8 @@ function parseSprintStatusMarkdown(raw, project) {
 
 		project.stories.total++;
 		if (status === 'backlog' || status === 'ready-for-dev') project.stories.pending++;
-		else if (status === 'in-progress') project.stories.inProgress++;
-		else if (status === 'done' || status === 'review') project.stories.done++;
+		else if (status === 'in-progress' || status === 'review') project.stories.inProgress++;
+		else if (status === 'done') project.stories.done++;
 
 		const story = {
 			id: `${epicNum}-${storyNum}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`,
@@ -731,10 +729,7 @@ function parseSprintStatusMarkdown(raw, project) {
 	// Determine epic status from stories
 	for (const epic of Object.values(epicMap)) {
 		if (epic.stories.length === 0) continue;
-		const allDone = epic.stories.every(s => s.status === 'done' || s.status === 'review');
-		const anyInProgress = epic.stories.some(s => s.status === 'in-progress');
-		if (allDone) epic.status = 'done';
-		else if (anyInProgress) epic.status = 'in-progress';
+		epic.status = deriveEpicStatusFromStories(epic.stories);
 	}
 
 	project.epics = Object.values(epicMap).sort((a, b) => Number(a.num) - Number(b.num));
@@ -763,6 +758,20 @@ function parseSprintStatusMarkdown(raw, project) {
 	}
 
 	return project.stories.total > 0;
+}
+
+function deriveEpicStatusFromStories(stories) {
+	if (!stories || stories.length === 0) return 'backlog';
+
+	if (stories.every((story) => story.status === 'done')) {
+		return 'done';
+	}
+
+	if (stories.every((story) => story.status === 'backlog' || story.status === 'ready-for-dev')) {
+		return 'backlog';
+	}
+
+	return 'in-progress';
 }
 
 /**

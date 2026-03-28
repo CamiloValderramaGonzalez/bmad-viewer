@@ -6,7 +6,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-project-setup: done
-  1-2-basic-functionality: in-progress
+  1-2-basic-functionality: done
   1-3-user-interface: backlog
   epic-1-retrospective: optional
 
