@@ -26,16 +26,16 @@ export async function generateStaticSite(bmadDir, outputDir) {
 	// Generate HTML
 	const html = renderDashboard(dataModel);
 
-	// Write HTML - remove WebSocket script for static version
-	const staticHtml = html.replace(
-		/<script src="\/client\.js"><\/script>/,
-		'<script>/* Static version - no live reload */</script>',
-	);
+	// Rewrite absolute asset paths to relative for file:// compatibility
+	// and swap WebSocket client script for the static bundle
+	const staticHtml = html
+		.replace(/<link rel="stylesheet" href="\/styles\.css">/, '<link rel="stylesheet" href="./styles.css">')
+		.replace(/<script src="\/client\.js"><\/script>/, '<script src="./client.js"></script>');
 
 	writeFileSync(join(outputDir, 'index.html'), staticHtml, 'utf8');
 
 	// Copy public assets
-	const publicFiles = ['styles.css'];
+	const publicFiles = ['styles.css', 'client.js'];
 	for (const file of publicFiles) {
 		const src = join(PUBLIC_DIR, file);
 		if (existsSync(src)) {
