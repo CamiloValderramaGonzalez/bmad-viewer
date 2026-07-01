@@ -13,15 +13,16 @@ const PUBLIC_DIR = join(__dirname, '..', '..', 'public');
  * Generate static HTML files from BMAD project.
  * @param {string} bmadDir - Project root containing _bmad/
  * @param {string} outputDir - Output directory for static files
+ * @param {{readOnly?: boolean}} [options] - `readOnly` renders a non-editable sprint board
  */
-export async function generateStaticSite(bmadDir, outputDir) {
+export async function generateStaticSite(bmadDir, outputDir, options = {}) {
 	console.log(`Generating static site from ${bmadDir} to ${outputDir}...`);
 
 	// Create output directory
 	mkdirSync(outputDir, { recursive: true });
 
 	// Build data model
-	const dataModel = buildDataModel(bmadDir);
+	const dataModel = buildDataModel(bmadDir, { readOnly: options.readOnly });
 
 	// Generate HTML
 	const html = renderDashboard(dataModel);

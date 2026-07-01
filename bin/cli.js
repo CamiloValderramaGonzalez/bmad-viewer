@@ -16,6 +16,7 @@ const flags = {
 	path: null,
 	output: null,
 	noOpen: false,
+	readOnly: false,
 	version: false,
 	help: false,
 };
@@ -43,6 +44,9 @@ for (let i = 0; i < args.length; i++) {
 			break;
 		case '--no-open':
 			flags.noOpen = true;
+			break;
+		case '--read-only':
+			flags.readOnly = true;
 			break;
 		case '--install-skill':
 			flags.installSkill = true;
@@ -74,6 +78,7 @@ Options:
   --path <dir>         Path to BMAD project (default: auto-detect _bmad/)
   --output, -o <dir>   Generate static HTML files (no server)
   --no-open            Don't open browser automatically
+  --read-only          Disable sprint board editing (no drag, writes blocked)
   --install-skill      Install /viewer slash command for Claude Code
   --version, -v        Show version number
   --help, -h           Show this help message
@@ -166,7 +171,7 @@ Learn more: https://github.com/bmad-method/BMAD-METHOD
 
 // Static generation mode
 if (flags.output) {
-	await generateStaticSite(bmadDir, flags.output);
+	await generateStaticSite(bmadDir, flags.output, { readOnly: flags.readOnly });
 	process.exit(0);
 }
 
@@ -175,4 +180,5 @@ await startServer({
 	port: flags.port,
 	bmadDir,
 	open: !flags.noOpen,
+	readOnly: flags.readOnly,
 });

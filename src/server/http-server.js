@@ -36,11 +36,13 @@ export async function startServer({
 	interactive = true,
 	attachProcessHandlers = interactive,
 	host = '127.0.0.1',
+	readOnly = false,
 }) {
 	const actualPort = await findAvailablePort(port);
 
-	// Custom path overrides (can be set via API)
-	const overrides = { customEpicsPath: null, customOutputPath: null, customSprintStatusPath: null };
+	// Custom path overrides (can be set via API). `readOnly` forces the board
+	// non-editable so viewing never mutates sprint-status files.
+	const overrides = { customEpicsPath: null, customOutputPath: null, customSprintStatusPath: null, readOnly };
 
 	// Build initial data model
 	let dataModel = buildDataModel(bmadDir, overrides);
