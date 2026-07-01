@@ -8,7 +8,7 @@ import { ErrorAggregator } from '../utils/error-aggregator.js';
  * Build the complete in-memory data model from a BMAD project.
  *
  * @param {string} bmadDir - Project root containing _bmad/
- * @param {{customEpicsPath?: string, customOutputPath?: string, customSprintStatusPath?: string}} [options] - Optional overrides
+ * @param {{customEpicsPath?: string, customOutputPath?: string, customSprintStatusPath?: string, readOnly?: boolean}} [options] - Optional overrides. `readOnly` forces the sprint board non-editable (no drag, writes blocked).
  * @returns {{wiki: object, project: object, config: object, aggregator: ErrorAggregator}}
  */
 export function buildDataModel(bmadDir, options) {
@@ -324,7 +324,7 @@ function buildProjectData(outputPath, aggregator, options) {
 			if (result.data?.development_status) {
 				const epicNames = parseEpicNamesFromComments(raw);
 				project.sprintStatus = result.data;
-				project.board = { editable: true, sprintStatusPath: statusPath, sprintStatusFormat: 'yaml' };
+				project.board = { editable: !options?.readOnly, sprintStatusPath: statusPath, sprintStatusFormat: 'yaml' };
 				const status = result.data.development_status;
 				const epicMap = {};
 
@@ -367,7 +367,7 @@ function buildProjectData(outputPath, aggregator, options) {
 
 			// Fallback: try markdown table format (### Epic N: Name + | N.M | desc | status |)
 			if (raw && parseSprintStatusMarkdown(raw, project)) {
-				project.board = { editable: true, sprintStatusPath: statusPath, sprintStatusFormat: 'markdown' };
+				project.board = { editable: !options?.readOnly, sprintStatusPath: statusPath, sprintStatusFormat: 'markdown' };
 				break;
 			}
 		}
