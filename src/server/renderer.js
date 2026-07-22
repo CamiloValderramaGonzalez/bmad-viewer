@@ -145,7 +145,12 @@ export function renderDashboard(dataModel) {
 		content,
 		activeTab: 'wiki',
 		warnings,
-		contentMapJson: JSON.stringify(contentMap),
+		// Escape sequences that would prematurely terminate the inline <script>
+		// tag when this JSON is embedded (a literal </script> or <!-- inside any
+		// story's rendered HTML would otherwise break window.__BMAD_CONTENT__).
+		contentMapJson: JSON.stringify(contentMap)
+			.replace(/<\/(script)/gi, '<\\/$1')
+			.replace(/<!--/g, '<\\!--'),
 		projectName: config.project_name,
 	});
 }
