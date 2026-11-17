@@ -21,7 +21,10 @@ const stub = {
 
 function writeFakeExtensionRoot() {
 	fakeRoot = mkdtempSync(join(tmpdir(), 'bmad-ext-'));
-	writeFileSync(join(fakeRoot, 'package.json'), JSON.stringify({ version: '0.0.0-test' }));
+	writeFileSync(
+		join(fakeRoot, 'package.json'),
+		JSON.stringify({ version: '0.0.0-test', type: 'module' }),
+	);
 	const src = join(fakeRoot, 'vendor', 'bmad-viewer', 'src');
 	mkdirSync(join(src, 'server'), { recursive: true });
 	mkdirSync(join(src, 'data'), { recursive: true });
