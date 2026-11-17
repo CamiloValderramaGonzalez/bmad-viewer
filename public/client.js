@@ -8,6 +8,8 @@
 	var pendingHighlight = null;
 	var boardDragState = null;
 	var boardSaveInFlight = false;
+	var boardReloadPending = false;
+	var lastBoardStatus = { message: '', kind: '' };
 
 	/* ── Hash Router ── */
 	function parseHash() {
@@ -458,6 +460,7 @@
 		}
 
 		setBoardStatus('');
+		storeBoardStatus('', '');
 	}
 
 	function handleBoardDragEnd() {
@@ -527,19 +530,8 @@
 		setBoardSaving(board, true);
 		setBoardStatus('Saving "' + titleText + '" as ' + humanizeStatus(nextStatus) + '...', 'saving');
 
-		fetch('/api/story-status', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ storyId: storyId, nextStatus: nextStatus }),
-		})
-			.then(function (response) {
-				return response.json();
-			})
-			.then(function (data) {
-				if (!data.ok) {
-					throw new Error(data.error || 'Could not save the new status');
-				}
-
+		postBoardJson('/api/story-status', { storyId: storyId, nextStatus: nextStatus }, 'save')
+			.then(function () {
 				localSaveSucceeded = true;
 				applyCardStatus(card, nextStatus);
 				syncBoardMetrics(board);
@@ -569,28 +561,94 @@
 				setBoardStatus(error.message || 'Could not save the new status', 'error');
 			})
 			.finally(function () {
+				if (localSaveSucceeded || boardReloadPending) {
+					storeBoardStatus(lastBoardStatus.message, lastBoardStatus.kind);
+				} else {
+					storeBoardStatus('', '');
+				}
 				setBoardSaving(board, false);
 				boardDragState = null;
+				if (boardReloadPending) {
+					boardReloadPending = false;
+					location.reload();
+				}
 			});
 	}
 
 	function syncConnectedPlatformsForStory(storyId) {
-		return fetch('/api/integrations/github/story-status', {
+		return postBoardJson(
+			'/api/integrations/github/story-status',
+			{ storyId: storyId },
+			'sync',
+		).then(function (data) {
+			return {
+				github: data.skipped ? 'skipped' : 'synced',
+			};
+		});
+	}
+
+	function getBoardFeedback() {
+		return window.BmadBoardFeedback || null;
+	}
+
+	function postBoardJson(url, body, action) {
+		var feedback = getBoardFeedback();
+		var request = fetch(url, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ storyId: storyId }),
-		})
-			.then(function (response) {
-				return response.json();
-			})
-			.then(function (data) {
-				if (!data.ok) {
-					throw new Error(data.error || 'The local change was saved, but GitHub sync failed');
-				}
-				return {
-					github: data.skipped ? 'skipped' : 'synced',
-				};
-			});
+			body: JSON.stringify(body),
+		});
+
+		if (!feedback) {
+			// Page HTML older than the server: keep the pre-2.3 behaviour.
+			return request
+				.then(function (response) {
+					return response.json();
+				})
+				.then(function (data) {
+					if (!data.ok) {
+						throw new Error(
+							data.error ||
+								(action === 'sync'
+									? 'The local change was saved, but GitHub sync failed'
+									: 'Could not save the new status'),
+						);
+					}
+					return data;
+				});
+		}
+
+		return request.then(
+			function (response) {
+				return feedback.readJsonResponse(response, action);
+			},
+			function () {
+				throw new Error(feedback.failureMessage(action, { network: true }));
+			},
+		);
+	}
+
+	function getBoardStatusStorage() {
+		try {
+			return window.sessionStorage || null;
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function storeBoardStatus(message, kind) {
+		var feedback = getBoardFeedback();
+		if (!feedback) return;
+		feedback.storeStatus(getBoardStatusStorage(), message, kind, Date.now());
+	}
+
+	function restoreBoardStatus() {
+		var feedback = getBoardFeedback();
+		if (!feedback) return;
+		var stored = feedback.takeStoredStatus(getBoardStatusStorage(), Date.now());
+		if (stored && stored.message) {
+			setBoardStatus(stored.message, stored.kind);
+		}
 	}
 
 	function restoreDraggedCard() {
@@ -626,6 +684,7 @@
 	}
 
 	function setBoardStatus(message, kind) {
+		lastBoardStatus = { message: message || '', kind: kind || '' };
 		var status = document.getElementById('board-save-status');
 		if (!status) return;
 
@@ -765,8 +824,16 @@
 			ws.onmessage = function (event) {
 				try {
 					var data = JSON.parse(event.data);
-					if (data.type === 'file-changed') {
+					var feedback = getBoardFeedback();
+					if (!feedback) {
+						if (data.type === 'file-changed') location.reload();
+						return;
+					}
+					var decision = feedback.reloadDecision(data, boardSaveInFlight);
+					if (decision === 'reload') {
 						location.reload();
+					} else if (decision === 'defer') {
+						boardReloadPending = true;
 					}
 				} catch (e) {
 					/* ignore parse errors */
@@ -1338,6 +1405,7 @@
 
 		// Kanban board
 		initKanbanBoard();
+		restoreBoardStatus();
 
 		// WebSocket
 		initWebSocket();

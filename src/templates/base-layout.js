@@ -49,6 +49,7 @@ export function BaseLayout({
 	</div>
 	${SearchModal()}
 	<script>window.__BMAD_CONTENT__ = ${contentMapJson || '{}'};</script>
+	<script src="/board-feedback.js"></script>
 	<script src="/client.js"></script>
 </body>
 </html>`;

@@ -25,3 +25,15 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-4-3-release-quality-and-lint-stability.md`
   summary: No release smoke check starts the CLI, generates static output or runs `npm pack` before a release.
   evidence: The epic 4 context lists release smoke checks as a quality gap; 4-3 added only lint and unit tests to the gate.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: The `client.js` wiring for board feedback (deferred reload in `finally`, message restore on load, rejected-fetch mapping) has no automated test.
+  evidence: The repo has no harness that runs the DOM-bound `client.js` IIFE; only the pure helpers in `public/board-feedback.js` are tested in `node:vm`.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: Live board-attribution tests may be timing-sensitive on slow CI (fixed 1 s watcher warm-up, next-message ordering).
+  evidence: Unverified (maybe-false, medium if true); three consecutive local passes. Settle by running the suite on CI several times or matching broadcasts by path.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: A `file-changed` broadcast that arrives while the user is mid-drag reloads the page and drops the drag.
+  evidence: Pre-existing: the reload decision only considers a save or sync in flight, and before 2-3 every broadcast reloaded immediately.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: If the connection drops after the server wrote `sprint-status`, the card is restored with an "unreachable" message although the file holds the new status.
+  evidence: Pre-existing behaviour for a rejected fetch; with a live server the watcher broadcast reloads to the true state, but with a dead server the board and file disagree until restart.

@@ -27,10 +27,12 @@ export async function generateStaticSite(bmadDir, outputDir) {
 	const html = renderDashboard(dataModel);
 
 	// Write HTML - remove WebSocket script for static version
-	const staticHtml = html.replace(
-		/<script src="\/client\.js"><\/script>/,
-		'<script>/* Static version - no live reload */</script>',
-	);
+	const staticHtml = html
+		.replace(/[ \t]*<script src="\/board-feedback\.js"><\/script>\r?\n?/, '')
+		.replace(
+			/<script src="\/client\.js"><\/script>/,
+			'<script>/* Static version - no live reload */</script>',
+		);
 
 	writeFileSync(join(outputDir, 'index.html'), staticHtml, 'utf8');
 

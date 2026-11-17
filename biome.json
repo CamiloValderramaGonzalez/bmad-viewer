@@ -34,7 +34,7 @@
 	},
 	"overrides": [
 		{
-			"include": ["public/client.js"],
+			"include": ["public/client.js", "public/board-feedback.js"],
 			"linter": {
 				"rules": {
 					"style": {
