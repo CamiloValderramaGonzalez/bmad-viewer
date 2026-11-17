@@ -6,7 +6,7 @@
 	"bin": {
 		"bmad-viewer": "./bin/cli.js"
 	},
-	"files": ["bin", "src", "public", "example-data", ".claude", "LICENSE", "README.md"],
+	"files": ["bin", "src", "public", "example-data", ".claude/commands", "LICENSE", "README.md"],
 	"engines": {
 		"node": ">=18.0.0"
 	},
