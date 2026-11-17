@@ -394,9 +394,13 @@ async function ensureGitHubProject(projectRoot, config, client, projectTitle, cr
 	let projectInfo = null;
 
 	if (config.project?.id) {
+		// A null node means the stored project no longer exists; so does a GraphQL NOT_FOUND.
+		// Anything else (network, auth, 5xx) must surface, or the title fallback below could
+		// create a duplicate Project during a transient outage.
 		try {
 			projectInfo = await client.getProjectV2(config.project.id);
-		} catch {
+		} catch (error) {
+			if (!isGitHubNotFoundError(error)) throw error;
 			projectInfo = null;
 		}
 	}
@@ -439,6 +443,19 @@ async function ensureGitHubProject(projectRoot, config, client, projectTitle, cr
 		config: nextConfig,
 		projectInfo,
 	};
+}
+
+function isGitHubNotFoundError(error) {
+	return (
+		error instanceof GitHubApiError &&
+		(error.errors || []).some(
+			(gqlError) =>
+				gqlError.type === 'NOT_FOUND' &&
+				Array.isArray(gqlError.path) &&
+				gqlError.path.length === 1 &&
+				gqlError.path[0] === 'node',
+		)
+	);
 }
 
 function buildGitHubProjectItemMap(items) {

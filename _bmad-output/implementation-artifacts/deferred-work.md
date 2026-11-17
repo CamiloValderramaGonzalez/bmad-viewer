@@ -37,3 +37,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
   summary: If the connection drops after the server wrote `sprint-status`, the card is restored with an "unreachable" message although the file holds the new status.
   evidence: Pre-existing behaviour for a rejected fetch; with a live server the watcher broadcast reloads to the true state, but with a dead server the board and file disagree until restart.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-github-issues-and-project-board-sync.md`
+  summary: A fresh GitHub sync leaves done epics and stories open, because the create-issue request cannot set `closed`; the next sync then closes them, so a re-sync is not write-free.
+  evidence: Pinned by the `todo` test in `tests/integrations/github-sync-flow.test.js`; the fix is a close request right after creating a done item.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-github-issues-and-project-board-sync.md`
+  summary: `getProjectV2` reads only `fields(first: 50)`, so on a Project with more than 50 fields the Status field can be missed.
+  evidence: Pre-existing "first N only" query, the same class as the items paging fixed in 3-1; rare in practice.

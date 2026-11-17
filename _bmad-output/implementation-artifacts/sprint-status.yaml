@@ -21,7 +21,7 @@ development_status:
 
   # Epic 3: External Platform Sync
   epic-3: in-progress
-  3-1-github-issues-and-project-board-sync: in-progress
+  3-1-github-issues-and-project-board-sync: review
   3-2-jira-connector-and-state-mapping: backlog
   3-3-azure-devops-connector-and-state-mapping: backlog
   epic-3-retrospective: optional
