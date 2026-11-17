@@ -29,7 +29,7 @@ development_status:
   # Epic 4: Product Quality And Adoption
   epic-4: in-progress
   4-1-test-coverage-for-board-and-integrations: done
-  4-2-documentation-and-onboarding-refresh: ready-for-dev
+  4-2-documentation-and-onboarding-refresh: review
   4-3-release-quality-and-lint-stability: done
   epic-4-retrospective: optional
 

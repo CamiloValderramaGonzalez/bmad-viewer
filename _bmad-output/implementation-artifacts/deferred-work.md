@@ -46,3 +46,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-3-vs-code-ux-settings-and-distribution.md`
   summary: The extension's server manager has no lock, so rapid `preferredPort` changes or a `deactivate` during an in-flight `ensureServer` can start a second server or leak one.
   evidence: `ensureServer`/`stopServer` in `apps/vscode-extension/extension.cjs` are not serialised; rare in practice (settings typed character by character).
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-documentation-and-onboarding-refresh.md`
+  summary: A pasted GitHub token is stored in plain text in `<project>/.bmad-viewer/integrations.json`, and the viewer does not add `.bmad-viewer/` to the user's `.gitignore`.
+  evidence: `integration-store.js` writes the config with `writeFileSync` and no permission mode; 4-2 documents the risk and recommends the env-var option, but hardening is code work.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-documentation-and-onboarding-refresh.md`
+  summary: Two runtime strings contradict the corrected README: the CLI's no-`_bmad` hint still suggests `./node_modules/bmad-viewer/example-data` (`bin/cli.js:160`), and the GitHub panel says the token is "stored only in the current project" without the plain-text warning (`src/server/renderer.js:276`).
+  evidence: 4-2 was docs-only by its frozen boundary ("Never change runtime code"); both are one-line copy fixes.
