@@ -37,5 +37,5 @@ development_status:
   epic-5: in-progress
   5-1-extension-scaffold-and-embedded-viewer-host: done
   5-2-workspace-bmad-detection-and-local-actions: done
-  5-3-vs-code-ux-settings-and-distribution: review
+  5-3-vs-code-ux-settings-and-distribution: done
   epic-5-retrospective: optional
