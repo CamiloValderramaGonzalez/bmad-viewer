@@ -237,7 +237,21 @@
 		var next = current === 'dark' ? 'light' : 'dark';
 		document.documentElement.dataset.theme = next;
 		localStorage.setItem('bmad-theme', next);
+		dropThemeParam();
 		updateThemeButton(next);
+	}
+
+	// A `?theme=` parameter (set by the VS Code extension) would win on the next reload
+	// and undo a manual toggle, so drop it once the user picks a theme.
+	function dropThemeParam() {
+		try {
+			var url = new URL(window.location.href);
+			if (!url.searchParams.has('theme')) return;
+			url.searchParams.delete('theme');
+			history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+		} catch (e) {
+			/* ignore */
+		}
 	}
 
 	function updateThemeButton() {

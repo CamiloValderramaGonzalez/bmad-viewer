@@ -2,11 +2,14 @@ const vscode = require('vscode');
 const path = require('node:path');
 const { readFileSync } = require('node:fs');
 const { pathToFileURL } = require('node:url');
+const { shouldOpenOnStartup, themeForKind, withTheme } = require('./lib/viewer-url.cjs');
 
 const VIEW_CONTAINER_COMMAND = 'workbench.view.extension.bmadViewer';
 const VIEW_ID = 'bmadViewer.dashboard';
 const EXTENSION_CONFIG = 'bmadViewer';
 const EDITOR_PANEL_TYPE = 'bmadViewer.editorPanel';
+
+let activeServerManager = null;
 
 // ── Shared server & module loader ──────────────────────────────────
 
@@ -710,7 +713,7 @@ function renderEditorViewer(webview, serverUrl, workspaceFolder, bmadDir) {
 			<button class="primary" data-action="open-in-browser">Open in browser</button>
 		</div>
 	</section>
-	<iframe src="${serverUrl}" title="BMAD Viewer dashboard"></iframe>
+	<iframe src="${escapeHtml(withTheme(serverUrl, currentTheme()))}" title="BMAD Viewer dashboard"></iframe>
 	<script nonce="${nonce}">
 		const vscode = acquireVsCodeApi();
 		for (const button of document.querySelectorAll('button[data-action]')) {
@@ -813,6 +816,10 @@ function escapeHtml(value) {
 		.replaceAll("'", '&#39;');
 }
 
+function currentTheme() {
+	return themeForKind(vscode.window.activeColorTheme?.kind);
+}
+
 function getNonce() {
 	return Math.random().toString(36).slice(2, 12);
 }
@@ -827,6 +834,7 @@ function loadExtensionVersion(context) {
 
 function activate(context) {
 	const serverManager = new BmadServerManager(context);
+	activeServerManager = serverManager;
 	const sidebarProvider = new BmadSidebarProvider(context, serverManager);
 
 	context.subscriptions.push(
@@ -867,11 +875,36 @@ function activate(context) {
 			}
 		}),
 		vscode.workspace.onDidChangeConfiguration((event) => {
-			if (event.affectsConfiguration(EXTENSION_CONFIG)) {
-				void sidebarProvider.refresh();
-				if (BmadEditorPanel.currentPanel) {
-					void BmadEditorPanel.currentPanel.update();
+			if (!event.affectsConfiguration(EXTENSION_CONFIG)) {
+				return;
+			}
+			void (async () => {
+				try {
+					if (event.affectsConfiguration(`${EXTENSION_CONFIG}.preferredPort`)) {
+						// The running server is reused otherwise; restart it on the new port.
+						await serverManager.stopServer();
+						const state = await serverManager.getWorkspaceState();
+						if (state.bmadDir) {
+							await serverManager.ensureServer(state.bmadDir);
+						}
+					}
+					await sidebarProvider.refresh();
+					if (BmadEditorPanel.currentPanel) {
+						await BmadEditorPanel.currentPanel.update();
+					}
+				} catch (error) {
+					void vscode.window.showErrorMessage(
+						`BMAD Viewer could not apply the new settings: ${
+							error instanceof Error ? error.message : String(error)
+						}`,
+					);
 				}
+			})();
+		}),
+		vscode.window.onDidChangeActiveColorTheme(() => {
+			void sidebarProvider.refresh();
+			if (BmadEditorPanel.currentPanel) {
+				void BmadEditorPanel.currentPanel.update();
 			}
 		}),
 		{
@@ -888,16 +921,28 @@ function activate(context) {
 		extensionVersion,
 	);
 
-	if (
-		vscode.workspace.getConfiguration(EXTENSION_CONFIG).get('openOnStartup', false) &&
-		(vscode.workspace.workspaceFolders?.length ?? 0) > 0
-	) {
-		void BmadEditorPanel.open(context, serverManager);
+	const openOnStartup = vscode.workspace
+		.getConfiguration(EXTENSION_CONFIG)
+		.get('openOnStartup', false);
+	if (openOnStartup) {
+		void serverManager
+			.getWorkspaceState()
+			.then((state) => {
+				if (shouldOpenOnStartup({ openOnStartup, bmadDir: state.bmadDir })) {
+					return BmadEditorPanel.open(context, serverManager);
+				}
+				return undefined;
+			})
+			.catch((error) => {
+				console.error('BMAD Viewer: failed to open the dashboard at startup.', error);
+			});
 	}
 }
 
 function deactivate() {
-	return undefined;
+	const serverManager = activeServerManager;
+	activeServerManager = null;
+	return serverManager ? serverManager.dispose() : undefined;
 }
 
 module.exports = {

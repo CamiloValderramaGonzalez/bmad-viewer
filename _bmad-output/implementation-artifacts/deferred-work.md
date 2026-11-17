@@ -43,3 +43,6 @@
 - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-github-issues-and-project-board-sync.md`
   summary: `getProjectV2` reads only `fields(first: 50)`, so on a Project with more than 50 fields the Status field can be missed.
   evidence: Pre-existing "first N only" query, the same class as the items paging fixed in 3-1; rare in practice.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-vs-code-ux-settings-and-distribution.md`
+  summary: The extension's server manager has no lock, so rapid `preferredPort` changes or a `deactivate` during an in-flight `ensureServer` can start a second server or leak one.
+  evidence: `ensureServer`/`stopServer` in `apps/vscode-extension/extension.cjs` are not serialised; rare in practice (settings typed character by character).
