@@ -16,7 +16,7 @@ development_status:
   epic-2: in-progress
   2-1-load-planning-and-implementation-artifacts: done
   2-2-drag-and-drop-local-status-persistence: done
-  2-3-board-ux-polish-and-status-feedback: review
+  2-3-board-ux-polish-and-status-feedback: done
   epic-2-retrospective: optional
 
   # Epic 3: External Platform Sync
