@@ -10,18 +10,20 @@ export function mapProjectToGitHubItems(project) {
 	for (const epic of project.epics || []) {
 		const epicId = `epic:${epic.num}`;
 		const epicLabels = ['bmad', 'bmad:epic', `bmad:status:${epic.status}`, `bmad:epic:${epic.num}`];
-		const epicBody = normalizeBodyText([
-			`# BMAD Epic ${epic.num}`,
-			'',
-			epic.name,
-			'',
-			`Status: ${epic.status}`,
-			`Stories: ${(epic.stories || []).length}`,
-			'',
-			'<!-- bmad:type=epic -->',
-			`<!-- bmad:id=${epicId} -->`,
-			`<!-- bmad:epic=${epic.num} -->`,
-		].join('\n'));
+		const epicBody = normalizeBodyText(
+			[
+				`# BMAD Epic ${epic.num}`,
+				'',
+				epic.name,
+				'',
+				`Status: ${epic.status}`,
+				`Stories: ${(epic.stories || []).length}`,
+				'',
+				'<!-- bmad:type=epic -->',
+				`<!-- bmad:id=${epicId} -->`,
+				`<!-- bmad:epic=${epic.num} -->`,
+			].join('\n'),
+		);
 
 		const epicItem = {
 			bmadId: epicId,
@@ -41,19 +43,21 @@ export function mapProjectToGitHubItems(project) {
 	for (const story of project.storyList || []) {
 		const storyKey = `${story.epic}-${story.id.split('-')[1]}`;
 		const storyContent = storyContents[storyKey];
-		const storyBody = normalizeBodyText([
-			`# BMAD Story ${story.id}`,
-			'',
-			storyContent?.title || story.title,
-			'',
-			`Epic: ${story.epic}`,
-			`Status: ${story.status}`,
-			'',
-			'<!-- bmad:type=story -->',
-			`<!-- bmad:id=story:${story.id} -->`,
-			`<!-- bmad:story=${story.id} -->`,
-			`<!-- bmad:epic=${story.epic} -->`,
-		].join('\n'));
+		const storyBody = normalizeBodyText(
+			[
+				`# BMAD Story ${story.id}`,
+				'',
+				storyContent?.title || story.title,
+				'',
+				`Epic: ${story.epic}`,
+				`Status: ${story.status}`,
+				'',
+				'<!-- bmad:type=story -->',
+				`<!-- bmad:id=story:${story.id} -->`,
+				`<!-- bmad:story=${story.id} -->`,
+				`<!-- bmad:epic=${story.epic} -->`,
+			].join('\n'),
+		);
 
 		desired.push({
 			bmadId: `story:${story.id}`,
@@ -98,7 +102,12 @@ export function diffGitHubIssue(existing, desired) {
 	const nextBody = normalizeBodyText(desired.body);
 	const currentBody = normalizeBodyText(existing.body || '');
 
-	if (existing.title !== desired.title || currentBody !== nextBody || currentLabels !== normalizedLabels || currentState !== nextState) {
+	if (
+		existing.title !== desired.title ||
+		currentBody !== nextBody ||
+		currentLabels !== normalizedLabels ||
+		currentState !== nextState
+	) {
 		return {
 			needsUpdate: true,
 			issue: {

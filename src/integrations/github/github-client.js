@@ -24,7 +24,9 @@ export class GitHubClient {
 		let page = 1;
 
 		while (true) {
-			const batch = await this.requestIssuesEndpoint(`/repos/${this.owner}/${this.repo}/issues?state=all&per_page=100&page=${page}`);
+			const batch = await this.requestIssuesEndpoint(
+				`/repos/${this.owner}/${this.repo}/issues?state=all&per_page=100&page=${page}`,
+			);
 			const filtered = batch.filter((item) => !item.pull_request);
 			issues.push(...filtered.map(mapIssueFromApi));
 
@@ -48,23 +50,29 @@ export class GitHubClient {
 	}
 
 	async updateIssue(issueNumber, issue) {
-		const updated = await this.requestIssuesEndpoint(`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`, {
-			method: 'PATCH',
-			body: JSON.stringify({
-				title: issue.title,
-				body: issue.body,
-				labels: issue.labels,
-				state: issue.state,
-			}),
-		});
+		const updated = await this.requestIssuesEndpoint(
+			`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`,
+			{
+				method: 'PATCH',
+				body: JSON.stringify({
+					title: issue.title,
+					body: issue.body,
+					labels: issue.labels,
+					state: issue.state,
+				}),
+			},
+		);
 		return mapIssueFromApi(updated);
 	}
 
 	async closeIssue(issueNumber) {
-		const closed = await this.requestIssuesEndpoint(`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`, {
-			method: 'PATCH',
-			body: JSON.stringify({ state: 'closed' }),
-		});
+		const closed = await this.requestIssuesEndpoint(
+			`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`,
+			{
+				method: 'PATCH',
+				body: JSON.stringify({ state: 'closed' }),
+			},
+		);
 		return mapIssueFromApi(closed);
 	}
 
@@ -79,8 +87,13 @@ export class GitHubClient {
 			try {
 				await this.enableIssues();
 			} catch (enableError) {
-				if (enableError instanceof GitHubApiError && (enableError.status === 403 || enableError.status === 404)) {
-					throw new Error(`Issues are disabled in "${this.owner}/${this.repo}" and the token could not enable them automatically. Enable Issues in the repository settings or use a token with repository admin access.`);
+				if (
+					enableError instanceof GitHubApiError &&
+					(enableError.status === 403 || enableError.status === 404)
+				) {
+					throw new Error(
+						`Issues are disabled in "${this.owner}/${this.repo}" and the token could not enable them automatically. Enable Issues in the repository settings or use a token with repository admin access.`,
+					);
 				}
 				throw enableError;
 			}
@@ -93,7 +106,9 @@ export class GitHubClient {
 		const ownerData = await this.queryProjectsOwner(title);
 		if (!ownerData) return null;
 
-		const project = (ownerData.projectsV2?.nodes || []).find((node) => !node.closed && node.title === title);
+		const project = (ownerData.projectsV2?.nodes || []).find(
+			(node) => !node.closed && node.title === title,
+		);
 		return project ? { ...project, ownerId: ownerData.id, ownerLogin: ownerData.login } : null;
 	}
 
@@ -221,19 +236,22 @@ export class GitHubClient {
 
 		if (!response.ok) {
 			const bodyText = await response.text();
-			throw new GitHubApiError(formatGitHubApiError({
-				status: response.status,
-				statusText: response.statusText,
-				bodyText,
-				owner: this.owner,
-				repo: this.repo,
-				path,
-			}), {
-				status: response.status,
-				statusText: response.statusText,
-				bodyText,
-				path,
-			});
+			throw new GitHubApiError(
+				formatGitHubApiError({
+					status: response.status,
+					statusText: response.statusText,
+					bodyText,
+					owner: this.owner,
+					repo: this.repo,
+					path,
+				}),
+				{
+					status: response.status,
+					statusText: response.statusText,
+					bodyText,
+					path,
+				},
+			);
 		}
 
 		return response.status === 204 ? null : response.json();
@@ -253,7 +271,8 @@ export class GitHubClient {
 
 		const payload = await response.json();
 		if (!response.ok || payload.errors?.length) {
-			const message = payload.errors?.map((error) => error.message).join('; ') || response.statusText;
+			const message =
+				payload.errors?.map((error) => error.message).join('; ') || response.statusText;
 			throw new Error(`GitHub GraphQL error: ${message}`);
 		}
 
@@ -317,7 +336,9 @@ function mapIssueFromApi(item) {
 		title: item.title,
 		body: item.body || '',
 		state: item.state,
-		labels: (item.labels || []).map((label) => typeof label === 'string' ? label : label.name).filter(Boolean),
+		labels: (item.labels || [])
+			.map((label) => (typeof label === 'string' ? label : label.name))
+			.filter(Boolean),
 	};
 }
 

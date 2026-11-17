@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const extensionDir = new URL('..', import.meta.url);
@@ -8,6 +8,8 @@ const extensionEntryPath = new URL('extension.cjs', extensionDir);
 
 JSON.parse(readFileSync(packageJsonPath, 'utf8'));
 readFileSync(extensionEntryPath, 'utf8');
-execFileSync(process.execPath, ['--check', fileURLToPath(extensionEntryPath)], { stdio: 'inherit' });
+execFileSync(process.execPath, ['--check', fileURLToPath(extensionEntryPath)], {
+	stdio: 'inherit',
+});
 
 console.log('VS Code extension manifest and entrypoint are readable.');

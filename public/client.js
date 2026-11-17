@@ -112,7 +112,9 @@
 			breadcrumb.innerHTML =
 				'<a href="#project" class="breadcrumb__link">Project</a>' +
 				' <span class="breadcrumb__sep">&rsaquo;</span> ' +
-				'<span class="breadcrumb__current">' + escapeText(item.name) + '</span>';
+				'<span class="breadcrumb__current">' +
+				escapeText(item.name) +
+				'</span>';
 		}
 
 		if (pendingHighlight) {
@@ -205,7 +207,11 @@
 			while (parent) {
 				parent.hidden = false;
 				var toggle = parent.previousElementSibling;
-				if (toggle && (toggle.classList.contains('sidebar-nav__toggle') || toggle.classList.contains('sidebar-nav__group-toggle'))) {
+				if (
+					toggle &&
+					(toggle.classList.contains('sidebar-nav__toggle') ||
+						toggle.classList.contains('sidebar-nav__group-toggle'))
+				) {
 					toggle.setAttribute('aria-expanded', 'true');
 					toggle.querySelector('.sidebar-nav__arrow').innerHTML = '&#9662;';
 				}
@@ -300,20 +306,29 @@
 			var typeMatch = (item.type || '').toLowerCase().includes(q);
 			var moduleMatch = (item.module || '').toLowerCase().includes(q);
 			var groupMatch = (item.group || '').toLowerCase().includes(q);
-			var contentMatch = !nameMatch && !typeMatch && !moduleMatch && !groupMatch && getPlainText(item).includes(q);
+			var contentMatch =
+				!nameMatch && !typeMatch && !moduleMatch && !groupMatch && getPlainText(item).includes(q);
 
 			if (nameMatch || typeMatch || moduleMatch || groupMatch || contentMatch) {
-				matches.push({ id: id, item: item, score: nameMatch ? 2 : (contentMatch ? 0 : 1), contentMatch: contentMatch });
+				matches.push({
+					id: id,
+					item: item,
+					score: nameMatch ? 2 : contentMatch ? 0 : 1,
+					contentMatch: contentMatch,
+				});
 			}
 		}
 
 		// Sort: name matches first, then metadata, then content
-		matches.sort(function (a, b) { return b.score - a.score; });
+		matches.sort(function (a, b) {
+			return b.score - a.score;
+		});
 
 		if (matches.length === 0) {
 			results.innerHTML =
 				'<div class="search-modal__no-results">No results found for "' +
-				escapeText(query) + '"</div>';
+				escapeText(query) +
+				'"</div>';
 			return;
 		}
 
@@ -326,22 +341,28 @@
 		});
 
 		var categoryLabels = {
-			'planning': 'Planning', 'research': 'Research', 'analysis': 'Analysis',
-			'test-arch': 'Test Architecture', 'cis': 'CIS Sessions',
-			'bmb-creation': 'BMB Creations', 'diagram': 'Diagrams',
-			'story': 'Stories', 'agent': 'Agents', 'workflow': 'Workflows',
-			'other': 'Other'
+			planning: 'Planning',
+			research: 'Research',
+			analysis: 'Analysis',
+			'test-arch': 'Test Architecture',
+			cis: 'CIS Sessions',
+			'bmb-creation': 'BMB Creations',
+			diagram: 'Diagrams',
+			story: 'Stories',
+			agent: 'Agents',
+			workflow: 'Workflows',
+			other: 'Other',
 		};
 
 		var html = '';
 		for (var type in grouped) {
-			var groupLabel = categoryLabels[type] || (type.charAt(0).toUpperCase() + type.slice(1) + 's');
+			var groupLabel = categoryLabels[type] || type.charAt(0).toUpperCase() + type.slice(1) + 's';
 			html += '<div class="search-modal__group-label">' + escapeText(groupLabel) + '</div>';
 			grouped[type].forEach(function (m) {
 				var view = m.id.startsWith('artifact/') || m.id.startsWith('story/') ? 'project' : 'wiki';
 				var subtitle = m.item.module
-					? (m.item.module + (m.item.group ? ' > ' + m.item.group : ''))
-					: (categoryLabels[m.item.type] || m.item.type || '');
+					? m.item.module + (m.item.group ? ' > ' + m.item.group : '')
+					: categoryLabels[m.item.type] || m.item.type || '';
 				var snippet = '';
 				if (m.contentMatch) {
 					var text = getPlainText(m.item);
@@ -350,19 +371,32 @@
 						var start = Math.max(0, idx - 30);
 						var end = Math.min(text.length, idx + q.length + 50);
 						var raw = text.substring(start, end).replace(/\s+/g, ' ');
-						snippet = '<span class="search-modal__result-snippet">' +
+						snippet =
+							'<span class="search-modal__result-snippet">' +
 							(start > 0 ? '...' : '') +
 							escapeText(raw.substring(0, idx - start)) +
-							'<mark>' + escapeText(raw.substring(idx - start, idx - start + q.length)) + '</mark>' +
+							'<mark>' +
+							escapeText(raw.substring(idx - start, idx - start + q.length)) +
+							'</mark>' +
 							escapeText(raw.substring(idx - start + q.length)) +
 							(end < text.length ? '...' : '') +
 							'</span>';
 					}
 				}
 				html +=
-					'<a class="search-modal__result" href="#' + view + '/' + m.id + '"' + (m.contentMatch ? ' data-content-match="1"' : '') + '>' +
-					'<span class="search-modal__result-title">' + escapeText(m.item.name) + '</span>' +
-					'<span class="search-modal__result-type">' + escapeText(subtitle) + '</span>' +
+					'<a class="search-modal__result" href="#' +
+					view +
+					'/' +
+					m.id +
+					'"' +
+					(m.contentMatch ? ' data-content-match="1"' : '') +
+					'>' +
+					'<span class="search-modal__result-title">' +
+					escapeText(m.item.name) +
+					'</span>' +
+					'<span class="search-modal__result-type">' +
+					escapeText(subtitle) +
+					'</span>' +
 					snippet +
 					'</a>';
 			});
@@ -498,7 +532,9 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ storyId: storyId, nextStatus: nextStatus }),
 		})
-			.then(function (response) { return response.json(); })
+			.then(function (response) {
+				return response.json();
+			})
 			.then(function (data) {
 				if (!data.ok) {
 					throw new Error(data.error || 'Could not save the new status');
@@ -520,7 +556,11 @@
 			.catch(function (error) {
 				if (localSaveSucceeded) {
 					syncBoardMetrics(board);
-					setBoardStatus((error.message || 'The local change was saved, but platform sync failed') + '. Local status is already updated.', 'error');
+					setBoardStatus(
+						(error.message || 'The local change was saved, but platform sync failed') +
+							'. Local status is already updated.',
+						'error',
+					);
 					return;
 				}
 
@@ -540,7 +580,9 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ storyId: storyId }),
 		})
-			.then(function (response) { return response.json(); })
+			.then(function (response) {
+				return response.json();
+			})
 			.then(function (data) {
 				if (!data.ok) {
 					throw new Error(data.error || 'The local change was saved, but GitHub sync failed');
@@ -554,8 +596,14 @@
 	function restoreDraggedCard() {
 		if (!boardDragState || !boardDragState.card || !boardDragState.originContainer) return;
 
-		if (boardDragState.originNextSibling && boardDragState.originNextSibling.parentNode === boardDragState.originContainer) {
-			boardDragState.originContainer.insertBefore(boardDragState.card, boardDragState.originNextSibling);
+		if (
+			boardDragState.originNextSibling &&
+			boardDragState.originNextSibling.parentNode === boardDragState.originContainer
+		) {
+			boardDragState.originContainer.insertBefore(
+				boardDragState.card,
+				boardDragState.originNextSibling,
+			);
 		} else {
 			boardDragState.originContainer.appendChild(boardDragState.card);
 		}
@@ -569,10 +617,12 @@
 			board.classList.toggle('kanban--saving', saving);
 		}
 
-		document.querySelectorAll('.kanban-card[data-card-type="story"][data-draggable="true"]').forEach(function (card) {
-			card.draggable = !saving;
-			card.classList.toggle('kanban-card--disabled', saving);
-		});
+		document
+			.querySelectorAll('.kanban-card[data-card-type="story"][data-draggable="true"]')
+			.forEach(function (card) {
+				card.draggable = !saving;
+				card.classList.toggle('kanban-card--disabled', saving);
+			});
 	}
 
 	function setBoardStatus(message, kind) {
@@ -595,9 +645,15 @@
 		});
 
 		var totalStories = board.querySelectorAll('.kanban-card[data-card-type="story"]').length;
-		var pendingStories = board.querySelectorAll('.kanban-column[data-column-status="backlog"] .kanban-card[data-card-type="story"], .kanban-column[data-column-status="ready-for-dev"] .kanban-card[data-card-type="story"]').length;
-		var activeStories = board.querySelectorAll('.kanban-column[data-column-status="in-progress"] .kanban-card[data-card-type="story"], .kanban-column[data-column-status="review"] .kanban-card[data-card-type="story"]').length;
-		var doneStories = board.querySelectorAll('.kanban-column[data-column-status="done"] .kanban-card[data-card-type="story"]').length;
+		var pendingStories = board.querySelectorAll(
+			'.kanban-column[data-column-status="backlog"] .kanban-card[data-card-type="story"], .kanban-column[data-column-status="ready-for-dev"] .kanban-card[data-card-type="story"]',
+		).length;
+		var activeStories = board.querySelectorAll(
+			'.kanban-column[data-column-status="in-progress"] .kanban-card[data-card-type="story"], .kanban-column[data-column-status="review"] .kanban-card[data-card-type="story"]',
+		).length;
+		var doneStories = board.querySelectorAll(
+			'.kanban-column[data-column-status="done"] .kanban-card[data-card-type="story"]',
+		).length;
 		var percentage = totalStories > 0 ? Math.round((doneStories / totalStories) * 100) : 0;
 
 		setText('[data-stat-total]', totalStories);
@@ -648,18 +704,23 @@
 	}
 
 	function getDragAfterElement(container, y) {
-		var cards = Array.prototype.slice.call(container.querySelectorAll('.kanban-card:not(.kanban-card--dragging)'));
+		var cards = Array.prototype.slice.call(
+			container.querySelectorAll('.kanban-card:not(.kanban-card--dragging)'),
+		);
 
-		return cards.reduce(function (closest, child) {
-			var box = child.getBoundingClientRect();
-			var offset = y - box.top - box.height / 2;
+		return cards.reduce(
+			function (closest, child) {
+				var box = child.getBoundingClientRect();
+				var offset = y - box.top - box.height / 2;
 
-			if (offset < 0 && offset > closest.offset) {
-				return { offset: offset, element: child };
-			}
+				if (offset < 0 && offset > closest.offset) {
+					return { offset: offset, element: child };
+				}
 
-			return closest;
-		}, { offset: Number.NEGATIVE_INFINITY, element: null }).element;
+				return closest;
+			},
+			{ offset: Number.NEGATIVE_INFINITY, element: null },
+		).element;
 	}
 
 	function removeEmptyState(container) {
@@ -791,7 +852,9 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(payload),
 				})
-					.then(function (response) { return response.json(); })
+					.then(function (response) {
+						return response.json();
+					})
 					.then(function (data) {
 						if (!data.ok) {
 							throw new Error(data.error || 'Could not connect GitHub');
@@ -821,7 +884,9 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: '{}',
 				})
-					.then(function (response) { return response.json(); })
+					.then(function (response) {
+						return response.json();
+					})
 					.then(function (data) {
 						if (!data.ok) {
 							throw new Error(data.error || 'Could not sync the GitHub Project board');
@@ -831,10 +896,16 @@
 						setGitHubConnectionBadge(true, data.config.owner + '/' + data.config.repo);
 						renderGitHubProjectState(data.config);
 						renderGitHubProjectSummary(data.project, data.issues);
-						setGitHubIntegrationStatus('GitHub Project board ready: ' + data.project.project.title + '.', 'ok');
+						setGitHubIntegrationStatus(
+							'GitHub Project board ready: ' + data.project.project.title + '.',
+							'ok',
+						);
 					})
 					.catch(function (error) {
-						setGitHubIntegrationStatus(error.message || 'Could not sync the GitHub Project board', 'error');
+						setGitHubIntegrationStatus(
+							error.message || 'Could not sync the GitHub Project board',
+							'error',
+						);
 					})
 					.finally(function () {
 						setGitHubBusy(false);
@@ -852,7 +923,9 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: '{}',
 				})
-					.then(function (response) { return response.json(); })
+					.then(function (response) {
+						return response.json();
+					})
 					.then(function (data) {
 						if (!data.ok) {
 							throw new Error(data.error || 'Could not preview GitHub sync');
@@ -862,7 +935,10 @@
 						setGitHubConnectionBadge(true, data.config.owner + '/' + data.config.repo);
 						renderGitHubProjectState(data.config);
 						renderGitHubPreview(data.plan);
-						setGitHubIntegrationStatus('Preview ready. Review the operations before syncing.', 'ok');
+						setGitHubIntegrationStatus(
+							'Preview ready. Review the operations before syncing.',
+							'ok',
+						);
 					})
 					.catch(function (error) {
 						setGitHubIntegrationStatus(error.message || 'Could not preview GitHub sync', 'error');
@@ -883,7 +959,9 @@
 					headers: { 'Content-Type': 'application/json' },
 					body: '{}',
 				})
-					.then(function (response) { return response.json(); })
+					.then(function (response) {
+						return response.json();
+					})
 					.then(function (data) {
 						if (!data.ok) {
 							throw new Error(data.error || 'Could not sync GitHub');
@@ -893,7 +971,16 @@
 						setGitHubConnectionBadge(true, data.config.owner + '/' + data.config.repo);
 						renderGitHubProjectState(data.config);
 						renderGitHubAppliedSummary(data.applied, data.plan);
-						setGitHubIntegrationStatus('GitHub sync completed. Created ' + data.applied.created.length + ', updated ' + data.applied.updated.length + ', closed ' + data.applied.closed.length + '.', 'ok');
+						setGitHubIntegrationStatus(
+							'GitHub sync completed. Created ' +
+								data.applied.created.length +
+								', updated ' +
+								data.applied.updated.length +
+								', closed ' +
+								data.applied.closed.length +
+								'.',
+							'ok',
+						);
 					})
 					.catch(function (error) {
 						setGitHubIntegrationStatus(error.message || 'Could not sync GitHub', 'error');
@@ -937,7 +1024,9 @@
 
 	function loadGitHubIntegration() {
 		fetch('/api/integrations')
-			.then(function (response) { return response.json(); })
+			.then(function (response) {
+				return response.json();
+			})
 			.then(function (data) {
 				if (!data || !data.github) {
 					setGitHubConnectionBadge(false);
@@ -948,9 +1037,12 @@
 				populateGitHubIntegration(data.github);
 				setGitHubConnectionBadge(true, data.github.owner + '/' + data.github.repo);
 				renderGitHubProjectState(data.github);
-				setGitHubIntegrationStatus(data.github.project && data.github.project.title
-					? 'GitHub repository and project board are ready for sync.'
-					: 'GitHub repository ready for manual preview and sync.', 'ok');
+				setGitHubIntegrationStatus(
+					data.github.project && data.github.project.title
+						? 'GitHub repository and project board are ready for sync.'
+						: 'GitHub repository ready for manual preview and sync.',
+					'ok',
+				);
 			})
 			.catch(function () {
 				setGitHubConnectionBadge(false);
@@ -967,9 +1059,10 @@
 		if (repoInput) repoInput.value = config.repo || '';
 		if (tokenInput) {
 			tokenInput.value = '';
-			tokenInput.placeholder = config && config.tokenStored
-				? 'Stored locally. Paste a new token only if you want to replace it.'
-				: 'Paste your GitHub token';
+			tokenInput.placeholder =
+				config && config.tokenStored
+					? 'Stored locally. Paste a new token only if you want to replace it.'
+					: 'Paste your GitHub token';
 		}
 	}
 
@@ -980,12 +1073,15 @@
 
 		if (badge) {
 			badge.textContent = text;
-			badge.className = 'integration-panel__badge' + (connected ? ' integration-panel__badge--connected' : '');
+			badge.className =
+				'integration-panel__badge' + (connected ? ' integration-panel__badge--connected' : '');
 		}
 
 		if (launcher) {
 			launcher.textContent = text;
-			launcher.className = connected ? 'platform-chip__status platform-chip__status--connected' : 'platform-chip__status';
+			launcher.className = connected
+				? 'platform-chip__status platform-chip__status--connected'
+				: 'platform-chip__status';
 		}
 	}
 
@@ -1007,7 +1103,8 @@
 
 		summary.hidden = false;
 		title.textContent = project.title;
-		subtitle.textContent = (config.owner || '') + '/' + (config.repo || '') + ' is linked and ready to sync with BMAD.';
+		subtitle.textContent =
+			(config.owner || '') + '/' + (config.repo || '') + ' is linked and ready to sync with BMAD.';
 
 		if (project.url) {
 			link.hidden = false;
@@ -1023,26 +1120,36 @@
 		if (!status) return;
 
 		status.textContent = message || '';
-		status.className = 'integration-panel__status' + (kind ? ' integration-panel__status--' + kind : '');
+		status.className =
+			'integration-panel__status' + (kind ? ' integration-panel__status--' + kind : '');
 	}
 
 	function setGitHubBusy(busy) {
-		['github-connect-btn', 'github-project-btn', 'github-preview-btn', 'github-sync-btn'].forEach(function (id) {
-			var button = document.getElementById(id);
-			if (button) {
-				button.disabled = busy;
-			}
-		});
+		['github-connect-btn', 'github-project-btn', 'github-preview-btn', 'github-sync-btn'].forEach(
+			function (id) {
+				var button = document.getElementById(id);
+				if (button) {
+					button.disabled = busy;
+				}
+			},
+		);
 	}
 
 	function renderGitHubPreview(plan) {
 		var preview = document.getElementById('github-sync-preview');
 		if (!preview) return;
 
-		var html = '<div class="integration-panel__preview-summary">' +
-			'<span>Create: <strong>' + plan.summary.create + '</strong></span>' +
-			'<span>Update: <strong>' + plan.summary.update + '</strong></span>' +
-			'<span>Close: <strong>' + plan.summary.close + '</strong></span>' +
+		var html =
+			'<div class="integration-panel__preview-summary">' +
+			'<span>Create: <strong>' +
+			plan.summary.create +
+			'</strong></span>' +
+			'<span>Update: <strong>' +
+			plan.summary.update +
+			'</strong></span>' +
+			'<span>Close: <strong>' +
+			plan.summary.close +
+			'</strong></span>' +
 			'</div>';
 
 		html += renderGitHubPreviewGroup('Create', plan.create, function (item) {
@@ -1063,12 +1170,25 @@
 		var preview = document.getElementById('github-sync-preview');
 		if (!preview) return;
 
-		preview.innerHTML = '<div class="integration-panel__preview-summary">' +
-			'<span>Create: <strong>' + applied.created.length + '</strong></span>' +
-			'<span>Update: <strong>' + applied.updated.length + '</strong></span>' +
-			'<span>Close: <strong>' + applied.closed.length + '</strong></span>' +
+		preview.innerHTML =
+			'<div class="integration-panel__preview-summary">' +
+			'<span>Create: <strong>' +
+			applied.created.length +
+			'</strong></span>' +
+			'<span>Update: <strong>' +
+			applied.updated.length +
+			'</strong></span>' +
+			'<span>Close: <strong>' +
+			applied.closed.length +
+			'</strong></span>' +
 			'</div>' +
-			'<p class="integration-panel__preview-note">Last applied plan: ' + plan.summary.create + ' create, ' + plan.summary.update + ' update, ' + plan.summary.close + ' close.</p>';
+			'<p class="integration-panel__preview-note">Last applied plan: ' +
+			plan.summary.create +
+			' create, ' +
+			plan.summary.update +
+			' update, ' +
+			plan.summary.close +
+			' close.</p>';
 		preview.hidden = false;
 	}
 
@@ -1079,15 +1199,27 @@
 		var project = projectResult && projectResult.project ? projectResult.project : null;
 		var applied = projectResult ? projectResult.applied : null;
 		var issueApplied = issueResult ? issueResult.applied : null;
-		var projectLink = project && project.url
-			? '<a class="integration-panel__link" href="' + escapeText(project.url) + '" target="_blank" rel="noreferrer">Open project</a>'
-			: '';
+		var projectLink =
+			project && project.url
+				? '<a class="integration-panel__link" href="' +
+					escapeText(project.url) +
+					'" target="_blank" rel="noreferrer">Open project</a>'
+				: '';
 
-		preview.innerHTML = '<div class="integration-panel__preview-summary">' +
-			'<span>Issues created: <strong>' + (issueApplied ? issueApplied.created.length : 0) + '</strong></span>' +
-			'<span>Issues updated: <strong>' + (issueApplied ? issueApplied.updated.length : 0) + '</strong></span>' +
-			'<span>Board items added: <strong>' + (applied ? applied.added.length : 0) + '</strong></span>' +
-			'<span>Status updates: <strong>' + (applied ? applied.updatedStatus.length : 0) + '</strong></span>' +
+		preview.innerHTML =
+			'<div class="integration-panel__preview-summary">' +
+			'<span>Issues created: <strong>' +
+			(issueApplied ? issueApplied.created.length : 0) +
+			'</strong></span>' +
+			'<span>Issues updated: <strong>' +
+			(issueApplied ? issueApplied.updated.length : 0) +
+			'</strong></span>' +
+			'<span>Board items added: <strong>' +
+			(applied ? applied.added.length : 0) +
+			'</strong></span>' +
+			'<span>Status updates: <strong>' +
+			(applied ? applied.updatedStatus.length : 0) +
+			'</strong></span>' +
 			'</div>' +
 			'<p class="integration-panel__preview-note">' +
 			(project ? escapeText(project.title) + '. ' : '') +
@@ -1098,21 +1230,34 @@
 
 	function renderGitHubPreviewGroup(title, items, formatter) {
 		if (!items || items.length === 0) {
-			return '<div class="integration-panel__preview-group">' +
-				'<h4>' + escapeText(title) + '</h4>' +
+			return (
+				'<div class="integration-panel__preview-group">' +
+				'<h4>' +
+				escapeText(title) +
+				'</h4>' +
 				'<p class="integration-panel__preview-empty">No items</p>' +
-				'</div>';
+				'</div>'
+			);
 		}
 
-		return '<div class="integration-panel__preview-group">' +
-			'<h4>' + escapeText(title) + '</h4>' +
+		return (
+			'<div class="integration-panel__preview-group">' +
+			'<h4>' +
+			escapeText(title) +
+			'</h4>' +
 			'<ul class="integration-panel__preview-list">' +
-			items.slice(0, 8).map(function (item) {
-				return '<li>' + escapeText(formatter(item)) + '</li>';
-			}).join('') +
-			(items.length > 8 ? '<li>...and ' + escapeText(String(items.length - 8)) + ' more</li>' : '') +
+			items
+				.slice(0, 8)
+				.map(function (item) {
+					return '<li>' + escapeText(formatter(item)) + '</li>';
+				})
+				.join('') +
+			(items.length > 8
+				? '<li>...and ' + escapeText(String(items.length - 8)) + ' more</li>'
+				: '') +
 			'</ul>' +
-			'</div>';
+			'</div>'
+		);
 	}
 
 	/* ── Init ── */
@@ -1212,11 +1357,25 @@
 		}
 
 		// Load current overrides into inputs
-		fetch('/api/get-paths').then(function (r) { return r.json(); }).then(function (data) {
-			if (data.customOutputPath) { var el = document.getElementById('custom-output-path'); if (el) el.value = data.customOutputPath; }
-			if (data.customEpicsPath) { var el = document.getElementById('custom-epics-path'); if (el) el.value = data.customEpicsPath; }
-			if (data.customSprintStatusPath) { var el = document.getElementById('custom-sprint-status-path'); if (el) el.value = data.customSprintStatusPath; }
-		}).catch(function () {});
+		fetch('/api/get-paths')
+			.then(function (r) {
+				return r.json();
+			})
+			.then(function (data) {
+				if (data.customOutputPath) {
+					var outputEl = document.getElementById('custom-output-path');
+					if (outputEl) outputEl.value = data.customOutputPath;
+				}
+				if (data.customEpicsPath) {
+					var epicsEl = document.getElementById('custom-epics-path');
+					if (epicsEl) epicsEl.value = data.customEpicsPath;
+				}
+				if (data.customSprintStatusPath) {
+					var sprintEl = document.getElementById('custom-sprint-status-path');
+					if (sprintEl) sprintEl.value = data.customSprintStatusPath;
+				}
+			})
+			.catch(function () {});
 
 		var btn = document.getElementById('apply-paths-btn');
 		if (!btn) return;
@@ -1230,37 +1389,55 @@
 
 			if (outputInput && outputInput.value.trim()) payload.outputPath = outputInput.value.trim();
 			if (epicsInput && epicsInput.value.trim()) payload.epicsPath = epicsInput.value.trim();
-			if (sprintInput && sprintInput.value.trim()) payload.sprintStatusPath = sprintInput.value.trim();
+			if (sprintInput && sprintInput.value.trim())
+				payload.sprintStatusPath = sprintInput.value.trim();
 
 			if (!payload.outputPath && !payload.epicsPath && !payload.sprintStatusPath) {
-				if (status) { status.textContent = 'Enter at least one path'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
+				if (status) {
+					status.textContent = 'Enter at least one path';
+					status.className = 'path-config-panel__status path-config-panel__status--err';
+				}
 				return;
 			}
 
 			btn.disabled = true;
-			if (status) { status.textContent = 'Applying...'; status.className = 'path-config-panel__status'; }
+			if (status) {
+				status.textContent = 'Applying...';
+				status.className = 'path-config-panel__status';
+			}
 
 			fetch('/api/set-paths', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(payload),
 			})
-				.then(function (r) { return r.json(); })
+				.then(function (r) {
+					return r.json();
+				})
 				.then(function (data) {
 					btn.disabled = false;
 					if (data.ok) {
 						if (status) {
-							status.textContent = 'Found ' + data.epics + ' epics, ' + data.stories + ' stories. Reloading...';
+							status.textContent =
+								'Found ' + data.epics + ' epics, ' + data.stories + ' stories. Reloading...';
 							status.className = 'path-config-panel__status path-config-panel__status--ok';
 						}
-						setTimeout(function () { location.reload(); }, 800);
+						setTimeout(function () {
+							location.reload();
+						}, 800);
 					} else {
-						if (status) { status.textContent = data.error || 'Error applying paths'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
+						if (status) {
+							status.textContent = data.error || 'Error applying paths';
+							status.className = 'path-config-panel__status path-config-panel__status--err';
+						}
 					}
 				})
 				.catch(function () {
 					btn.disabled = false;
-					if (status) { status.textContent = 'Network error'; status.className = 'path-config-panel__status path-config-panel__status--err'; }
+					if (status) {
+						status.textContent = 'Network error';
+						status.className = 'path-config-panel__status path-config-panel__status--err';
+					}
 				});
 		});
 	}

@@ -1,6 +1,16 @@
-import { loadIntegrationsConfig, saveGitHubIntegration, toPublicGitHubIntegration } from '../integration-store.js';
+import {
+	loadIntegrationsConfig,
+	saveGitHubIntegration,
+	toPublicGitHubIntegration,
+} from '../integration-store.js';
 import { GitHubApiError, GitHubClient } from './github-client.js';
-import { buildExistingIssuesMap, diffGitHubIssue, mapProjectToGitHubItems, parseBmadMarker, planGitHubSync } from './github-mapper.js';
+import {
+	buildExistingIssuesMap,
+	diffGitHubIssue,
+	mapProjectToGitHubItems,
+	parseBmadMarker,
+	planGitHubSync,
+} from './github-mapper.js';
 
 export function validateGitHubIntegrationConfig(config) {
 	if (!config || typeof config !== 'object') {
@@ -44,7 +54,9 @@ export async function connectGitHubIntegration(projectRoot, config) {
 			await client.enableIssues();
 		} catch (error) {
 			if (error instanceof GitHubApiError && (error.status === 403 || error.status === 404)) {
-				throw new Error(`Issues are disabled in "${nextConfig.owner}/${nextConfig.repo}" and this token could not enable them automatically. Enable Issues in the repository settings or use a token with repository admin access.`);
+				throw new Error(
+					`Issues are disabled in "${nextConfig.owner}/${nextConfig.repo}" and this token could not enable them automatically. Enable Issues in the repository settings or use a token with repository admin access.`,
+				);
 			}
 			throw error;
 		}
@@ -92,9 +104,16 @@ export async function syncGitHubProject(projectRoot, projectData) {
 	const client = createGitHubClient(config);
 	const desiredItems = mapProjectToGitHubItems(projectData);
 	const issueSync = await syncGitHubIssues(client, desiredItems);
-	const projectSync = await syncGitHubProjectBoard(projectRoot, config, client, desiredItems, issueSync.issueMap, {
-		projectTitle: getGitHubProjectTitle(config),
-	});
+	const projectSync = await syncGitHubProjectBoard(
+		projectRoot,
+		config,
+		client,
+		desiredItems,
+		issueSync.issueMap,
+		{
+			projectTitle: getGitHubProjectTitle(config),
+		},
+	);
 
 	return {
 		config: toPublicGitHubIntegration(projectSync.config),
@@ -116,16 +135,25 @@ export async function syncGitHubStatusForStory(projectRoot, projectData, storyId
 		throw new Error(`Story "${storyId}" is not available in the current BMAD project`);
 	}
 
-	const relatedItems = desiredItems.filter((item) => item.bmadId === storyBmadId || item.bmadId === `epic:${storyItem.epicNum}`);
+	const relatedItems = desiredItems.filter(
+		(item) => item.bmadId === storyBmadId || item.bmadId === `epic:${storyItem.epicNum}`,
+	);
 	const issueSync = await syncSubsetOfGitHubIssues(client, relatedItems);
 
 	let nextConfig = config;
 	let project = null;
 	if (config.project?.id || config.project?.title) {
-		const projectSync = await syncGitHubProjectBoard(projectRoot, config, client, relatedItems, issueSync.issueMap, {
-			projectTitle: config.project?.title || getGitHubProjectTitle(config),
-			createIfMissing: true,
-		});
+		const projectSync = await syncGitHubProjectBoard(
+			projectRoot,
+			config,
+			client,
+			relatedItems,
+			issueSync.issueMap,
+			{
+				projectTitle: config.project?.title || getGitHubProjectTitle(config),
+				createIfMissing: true,
+			},
+		);
 		nextConfig = projectSync.config;
 		project = projectSync.project;
 	}
@@ -281,12 +309,27 @@ async function syncSubsetOfGitHubIssues(client, desiredItems) {
 	};
 }
 
-async function syncGitHubProjectBoard(projectRoot, config, client, desiredItems, issueMap, options = {}) {
-	const ensured = await ensureGitHubProject(projectRoot, config, client, options.projectTitle || getGitHubProjectTitle(config), options.createIfMissing !== false);
+async function syncGitHubProjectBoard(
+	projectRoot,
+	config,
+	client,
+	desiredItems,
+	issueMap,
+	options = {},
+) {
+	const ensured = await ensureGitHubProject(
+		projectRoot,
+		config,
+		client,
+		options.projectTitle || getGitHubProjectTitle(config),
+		options.createIfMissing !== false,
+	);
 	const projectInfo = ensured.projectInfo;
 	const statusField = findGitHubProjectStatusField(projectInfo.fields?.nodes || []);
 	if (!statusField) {
-		throw new Error(`GitHub Project "${projectInfo.title}" does not have a Status field that can be updated.`);
+		throw new Error(
+			`GitHub Project "${projectInfo.title}" does not have a Status field that can be updated.`,
+		);
 	}
 
 	const projectItems = buildGitHubProjectItemMap(projectInfo.items?.nodes || []);
@@ -319,11 +362,19 @@ async function syncGitHubProjectBoard(projectRoot, config, client, desiredItems,
 			});
 		}
 
-		const desiredOption = pickGitHubProjectStatusOption(statusField.options || [], desiredItem.bmadStatus);
+		const desiredOption = pickGitHubProjectStatusOption(
+			statusField.options || [],
+			desiredItem.bmadStatus,
+		);
 		if (!desiredOption) continue;
 		if (projectItem.statusOptionId === desiredOption.id) continue;
 
-		await client.updateProjectV2ItemStatus(projectInfo.id, projectItem.id, statusField.id, desiredOption.id);
+		await client.updateProjectV2ItemStatus(
+			projectInfo.id,
+			projectItem.id,
+			statusField.id,
+			desiredOption.id,
+		);
 		projectItem.statusOptionId = desiredOption.id;
 		projectItem.statusName = desiredOption.name;
 		applied.updatedStatus.push({
@@ -429,11 +480,15 @@ function resolveGitHubToken(config) {
 }
 
 function normalizeStatusName(value) {
-	return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+	return String(value || '')
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, '');
 }
 
 function parseGitHubRepoReference(value) {
-	const cleaned = String(value || '').trim().replace(/\/+$/, '');
+	const cleaned = String(value || '')
+		.trim()
+		.replace(/\/+$/, '');
 	if (!cleaned) return null;
 
 	const urlMatch = cleaned.match(/^https?:\/\/github\.com\/([^\/\s]+)\/([^\/\s?#]+)$/i);

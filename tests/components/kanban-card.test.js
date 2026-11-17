@@ -1,5 +1,5 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { KanbanCard } from '../../src/components/kanban-card.js';
 
 describe('KanbanCard', () => {
@@ -11,7 +11,12 @@ describe('KanbanCard', () => {
 	});
 
 	it('escapes HTML in title', () => {
-		const html = KanbanCard({ id: '1', title: '<script>alert("xss")</script>', status: 'backlog', epic: '1' });
+		const html = KanbanCard({
+			id: '1',
+			title: '<script>alert("xss")</script>',
+			status: 'backlog',
+			epic: '1',
+		});
 		assert.ok(!html.includes('<script>'));
 		assert.ok(html.includes('&lt;script&gt;'));
 	});

@@ -15,7 +15,57 @@
 		"indentWidth": 2,
 		"lineWidth": 100
 	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "single"
+		}
+	},
 	"files": {
-		"ignore": ["node_modules", "example-data", "coverage"]
-	}
+		"ignore": [
+			"node_modules",
+			"example-data",
+			"coverage",
+			"_bmad",
+			"_bmad-output",
+			".claude",
+			"apps/vscode-extension/vendor",
+			"apps/vscode-extension/node_modules"
+		]
+	},
+	"overrides": [
+		{
+			"include": ["public/client.js"],
+			"linter": {
+				"rules": {
+					"style": {
+						"noVar": "off",
+						"useTemplate": "off"
+					},
+					"complexity": {
+						"useArrowFunction": "off",
+						"noForEach": "off",
+						"useOptionalChain": "off"
+					},
+					"correctness": {
+						"noInnerDeclarations": "off"
+					},
+					"suspicious": {
+						"noRedundantUseStrict": "off"
+					}
+				}
+			}
+		},
+		{
+			"include": ["public/styles.css"],
+			"formatter": {
+				"enabled": false
+			}
+		},
+		{
+			"include": ["apps/vscode-extension/package.json", "apps/vscode-extension/package-lock.json"],
+			"formatter": {
+				"enabled": false
+			}
+		}
+	]
 }

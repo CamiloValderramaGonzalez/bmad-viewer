@@ -33,7 +33,10 @@ export function applyStoryStatusUpdate(raw, source, storyId, nextStatus) {
 	validateInputs(storyId, nextStatus);
 
 	const yamlResult = parseYamlContent(raw, source);
-	if (yamlResult.data?.development_status && typeof yamlResult.data.development_status === 'object') {
+	if (
+		yamlResult.data?.development_status &&
+		typeof yamlResult.data.development_status === 'object'
+	) {
 		return updateYamlSprintStatus(raw, storyId, nextStatus, yamlResult.data.development_status);
 	}
 
@@ -97,7 +100,10 @@ function updateMarkdownSprintStatus(raw, storyId, nextStatus) {
 		const trimmed = line.trim();
 		if (!trimmed.startsWith('|')) return line;
 
-		const cells = trimmed.split('|').slice(1, -1).map((cell) => cell.trim());
+		const cells = trimmed
+			.split('|')
+			.slice(1, -1)
+			.map((cell) => cell.trim());
 		if (cells.length < 3) return line;
 		if (cells[0] !== storyKey) return line;
 
@@ -121,7 +127,10 @@ function updateMarkdownSprintStatus(raw, storyId, nextStatus) {
 }
 
 function replaceYamlValue(raw, key, value) {
-	const pattern = new RegExp(`^(\\s*${escapeRegExp(key)}\\s*:\\s*)([^#\\r\\n]+?)(\\s*(?:#.*)?)$`, 'm');
+	const pattern = new RegExp(
+		`^(\\s*${escapeRegExp(key)}\\s*:\\s*)([^#\\r\\n]+?)(\\s*(?:#.*)?)$`,
+		'm',
+	);
 	if (!pattern.test(raw)) {
 		throw new Error(`Could not update YAML entry "${key}"`);
 	}

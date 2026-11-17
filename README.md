@@ -92,7 +92,7 @@ Bundled example data lets you explore the dashboard without a real project.
 
 ## Contributing
 
-Issues and PRs welcome at [github.com/CamiloValderramaGonzalez/bmad-viewer](https://github.com/CamiloValderramaGonzalez/bmad-viewer).
+Issues and PRs welcome at [github.com/CamiloValderramaGonzalez/bmad-viewer](https://github.com/CamiloValderramaGonzalez/bmad-viewer). Before opening a PR, run `npm run check` (lint, then tests); CI runs the same checks on every push and pull request.
 
 ## License
 
