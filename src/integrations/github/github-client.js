@@ -1,5 +1,23 @@
 const GITHUB_API_BASE = 'https://api.github.com';
 const GITHUB_GRAPHQL_API = 'https://api.github.com/graphql';
+const PROJECT_ITEM_NODES = `nodes {
+	id
+	fieldValueByName(name: "Status") {
+		... on ProjectV2ItemFieldSingleSelectValue {
+			name
+			optionId
+		}
+	}
+	content {
+		__typename
+		... on Issue {
+			id
+			number
+			title
+			body
+		}
+	}
+}`;
 
 export class GitHubClient {
 	constructor({ owner, repo, token }) {
@@ -24,7 +42,9 @@ export class GitHubClient {
 		let page = 1;
 
 		while (true) {
-			const batch = await this.requestIssuesEndpoint(`/repos/${this.owner}/${this.repo}/issues?state=all&per_page=100&page=${page}`);
+			const batch = await this.requestIssuesEndpoint(
+				`/repos/${this.owner}/${this.repo}/issues?state=all&per_page=100&page=${page}`,
+			);
 			const filtered = batch.filter((item) => !item.pull_request);
 			issues.push(...filtered.map(mapIssueFromApi));
 
@@ -48,23 +68,29 @@ export class GitHubClient {
 	}
 
 	async updateIssue(issueNumber, issue) {
-		const updated = await this.requestIssuesEndpoint(`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`, {
-			method: 'PATCH',
-			body: JSON.stringify({
-				title: issue.title,
-				body: issue.body,
-				labels: issue.labels,
-				state: issue.state,
-			}),
-		});
+		const updated = await this.requestIssuesEndpoint(
+			`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`,
+			{
+				method: 'PATCH',
+				body: JSON.stringify({
+					title: issue.title,
+					body: issue.body,
+					labels: issue.labels,
+					state: issue.state,
+				}),
+			},
+		);
 		return mapIssueFromApi(updated);
 	}
 
 	async closeIssue(issueNumber) {
-		const closed = await this.requestIssuesEndpoint(`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`, {
-			method: 'PATCH',
-			body: JSON.stringify({ state: 'closed' }),
-		});
+		const closed = await this.requestIssuesEndpoint(
+			`/repos/${this.owner}/${this.repo}/issues/${issueNumber}`,
+			{
+				method: 'PATCH',
+				body: JSON.stringify({ state: 'closed' }),
+			},
+		);
 		return mapIssueFromApi(closed);
 	}
 
@@ -79,8 +105,13 @@ export class GitHubClient {
 			try {
 				await this.enableIssues();
 			} catch (enableError) {
-				if (enableError instanceof GitHubApiError && (enableError.status === 403 || enableError.status === 404)) {
-					throw new Error(`Issues are disabled in "${this.owner}/${this.repo}" and the token could not enable them automatically. Enable Issues in the repository settings or use a token with repository admin access.`);
+				if (
+					enableError instanceof GitHubApiError &&
+					(enableError.status === 403 || enableError.status === 404)
+				) {
+					throw new Error(
+						`Issues are disabled in "${this.owner}/${this.repo}" and the token could not enable them automatically. Enable Issues in the repository settings or use a token with repository admin access.`,
+					);
 				}
 				throw enableError;
 			}
@@ -93,7 +124,9 @@ export class GitHubClient {
 		const ownerData = await this.queryProjectsOwner(title);
 		if (!ownerData) return null;
 
-		const project = (ownerData.projectsV2?.nodes || []).find((node) => !node.closed && node.title === title);
+		const project = (ownerData.projectsV2?.nodes || []).find(
+			(node) => !node.closed && node.title === title,
+		);
 		return project ? { ...project, ownerId: ownerData.id, ownerLogin: ownerData.login } : null;
 	}
 
@@ -146,24 +179,11 @@ export class GitHubClient {
 							}
 						}
 						items(first: 100) {
-							nodes {
-								id
-								fieldValueByName(name: "Status") {
-									... on ProjectV2ItemFieldSingleSelectValue {
-										name
-										optionId
-									}
-								}
-								content {
-									__typename
-									... on Issue {
-										id
-										number
-										title
-										body
-									}
-								}
+							pageInfo {
+								hasNextPage
+								endCursor
 							}
+							${PROJECT_ITEM_NODES}
 						}
 					}
 				}
@@ -171,7 +191,57 @@ export class GitHubClient {
 			{ projectId },
 		);
 
-		return data.node;
+		const project = data.node;
+		if (!project) return null;
+
+		const items = project.items || { nodes: [] };
+		const nodes = [...(items.nodes || [])];
+		let pageInfo = items.pageInfo;
+		let previousCursor = null;
+
+		while (pageInfo?.hasNextPage) {
+			const cursor = pageInfo.endCursor;
+			if (!cursor) {
+				throw projectItemsPagingError('GitHub reported more Project items but returned no cursor');
+			}
+			if (cursor === previousCursor) {
+				throw projectItemsPagingError('GitHub returned the same Project items cursor twice');
+			}
+			previousCursor = cursor;
+
+			const page = await this.graphql(
+				`query($projectId: ID!, $cursor: String!) {
+					node(id: $projectId) {
+						... on ProjectV2 {
+							items(first: 100, after: $cursor) {
+								pageInfo {
+									hasNextPage
+									endCursor
+								}
+								${PROJECT_ITEM_NODES}
+							}
+						}
+					}
+				}`,
+				{ projectId, cursor },
+			);
+			if (!page?.node) {
+				throw projectItemsPagingError('GitHub returned no Project for a follow-up items page');
+			}
+			const pageItems = page.node.items;
+			if (!pageItems || !pageItems.pageInfo) {
+				throw projectItemsPagingError(
+					'GitHub returned an incomplete Project items page (missing items or pageInfo)',
+				);
+			}
+			nodes.push(...(pageItems.nodes || []));
+			pageInfo = pageItems.pageInfo;
+		}
+
+		return {
+			...project,
+			items: { ...items, nodes, pageInfo },
+		};
 	}
 
 	async addProjectV2ItemById(projectId, contentId) {
@@ -221,19 +291,22 @@ export class GitHubClient {
 
 		if (!response.ok) {
 			const bodyText = await response.text();
-			throw new GitHubApiError(formatGitHubApiError({
-				status: response.status,
-				statusText: response.statusText,
-				bodyText,
-				owner: this.owner,
-				repo: this.repo,
-				path,
-			}), {
-				status: response.status,
-				statusText: response.statusText,
-				bodyText,
-				path,
-			});
+			throw new GitHubApiError(
+				formatGitHubApiError({
+					status: response.status,
+					statusText: response.statusText,
+					bodyText,
+					owner: this.owner,
+					repo: this.repo,
+					path,
+				}),
+				{
+					status: response.status,
+					statusText: response.statusText,
+					bodyText,
+					path,
+				},
+			);
 		}
 
 		return response.status === 204 ? null : response.json();
@@ -251,10 +324,22 @@ export class GitHubClient {
 			body: JSON.stringify({ query, variables }),
 		});
 
-		const payload = await response.json();
-		if (!response.ok || payload.errors?.length) {
-			const message = payload.errors?.map((error) => error.message).join('; ') || response.statusText;
-			throw new Error(`GitHub GraphQL error: ${message}`);
+		const bodyText = await response.text();
+		const payload = tryParseJson(bodyText);
+		if (!response.ok || !payload || payload.errors?.length) {
+			const message =
+				payload?.errors?.map((error) => error.message).join('; ') || response.statusText;
+			throw new GitHubApiError(`GitHub GraphQL error: ${message}`, {
+				status: response.status,
+				statusText: response.statusText,
+				bodyText,
+				path: '/graphql',
+				errors: (payload?.errors || []).map((error) => ({
+					type: error.type || null,
+					path: Array.isArray(error.path) ? error.path : null,
+					message: error.message,
+				})),
+			});
 		}
 
 		return payload.data;
@@ -307,7 +392,12 @@ export class GitHubApiError extends Error {
 		this.statusText = details.statusText;
 		this.bodyText = details.bodyText;
 		this.path = details.path;
+		this.errors = details.errors || [];
 	}
+}
+
+function projectItemsPagingError(reason) {
+	return new GitHubApiError(`GitHub GraphQL error: ${reason}`, { path: '/graphql' });
 }
 
 function mapIssueFromApi(item) {
@@ -317,7 +407,9 @@ function mapIssueFromApi(item) {
 		title: item.title,
 		body: item.body || '',
 		state: item.state,
-		labels: (item.labels || []).map((label) => typeof label === 'string' ? label : label.name).filter(Boolean),
+		labels: (item.labels || [])
+			.map((label) => (typeof label === 'string' ? label : label.name))
+			.filter(Boolean),
 	};
 }
 

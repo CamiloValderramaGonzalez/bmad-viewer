@@ -1,7 +1,7 @@
-import { mkdirSync, writeFileSync, readFileSync, copyFileSync, existsSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { buildDataModel } from '../data/data-model.js';
 import { renderDashboard } from './renderer.js';
 
@@ -27,10 +27,12 @@ export async function generateStaticSite(bmadDir, outputDir) {
 	const html = renderDashboard(dataModel);
 
 	// Write HTML - remove WebSocket script for static version
-	const staticHtml = html.replace(
-		/<script src="\/client\.js"><\/script>/,
-		'<script>/* Static version - no live reload */</script>',
-	);
+	const staticHtml = html
+		.replace(/[ \t]*<script src="\/board-feedback\.js"><\/script>\r?\n?/, '')
+		.replace(
+			/<script src="\/client\.js"><\/script>/,
+			'<script>/* Static version - no live reload */</script>',
+		);
 
 	writeFileSync(join(outputDir, 'index.html'), staticHtml, 'utf8');
 

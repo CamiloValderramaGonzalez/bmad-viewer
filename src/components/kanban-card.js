@@ -7,7 +7,8 @@ import { Badge } from './badge.js';
  * @returns {string} HTML string
  */
 export function KanbanCard({ id, title, status, epic, cardType, detail, editable = false }) {
-	const typeClass = cardType === 'bug' ? ' kanban-card--bug' : cardType === 'global' ? ' kanban-card--global' : '';
+	const typeClass =
+		cardType === 'bug' ? ' kanban-card--bug' : cardType === 'global' ? ' kanban-card--global' : '';
 	const cardTypeValue = cardType || 'story';
 	const isEditableStory = editable && cardTypeValue === 'story';
 	const tag = cardType ? 'div' : 'a';

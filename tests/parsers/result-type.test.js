@@ -1,6 +1,6 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createResult, successResult, errorResult } from '../../src/parsers/result-type.js';
+import { describe, it } from 'node:test';
+import { createResult, errorResult, successResult } from '../../src/parsers/result-type.js';
 
 describe('Result Type', () => {
 	it('createResult returns correct structure', () => {

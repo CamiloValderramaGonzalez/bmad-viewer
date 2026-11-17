@@ -1,14 +1,22 @@
-import { InlineThemeScript } from './inline-theme-script.js';
 import { HeaderBar } from '../components/header-bar.js';
 import { LensTabs } from '../components/lens-tabs.js';
 import { SearchModal } from '../components/search-modal.js';
+import { InlineThemeScript } from './inline-theme-script.js';
 
 /**
  * Generate the full HTML page layout.
  * @param {{title: string, sidebar: string, content: string, activeTab: string, warnings: Array, contentMapJson: string}} props
  * @returns {string} Complete HTML document
  */
-export function BaseLayout({ title, sidebar, content, activeTab, warnings, contentMapJson, projectName }) {
+export function BaseLayout({
+	title,
+	sidebar,
+	content,
+	activeTab,
+	warnings,
+	contentMapJson,
+	projectName,
+}) {
 	const warningBanner =
 		warnings && warnings.length > 0
 			? `<div class="warning-banner" role="alert">
@@ -41,6 +49,7 @@ export function BaseLayout({ title, sidebar, content, activeTab, warnings, conte
 	</div>
 	${SearchModal()}
 	<script>window.__BMAD_CONTENT__ = ${contentMapJson || '{}'};</script>
+	<script src="/board-feedback.js"></script>
 	<script src="/client.js"></script>
 </body>
 </html>`;

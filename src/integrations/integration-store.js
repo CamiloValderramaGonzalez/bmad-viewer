@@ -57,15 +57,15 @@ export function toPublicGitHubIntegration(config) {
 		repo: config.repo || '',
 		mode: config.mode || 'issues',
 		connectedAt: config.connectedAt || null,
-		authType: config.token ? 'token' : (config.tokenEnvVar ? 'env' : null),
+		authType: config.token ? 'token' : config.tokenEnvVar ? 'env' : null,
 		tokenStored: Boolean(config.token),
 		tokenEnvVar: config.tokenEnvVar || '',
 		project: config.project
 			? {
-				id: config.project.id || '',
-				title: config.project.title || '',
-				url: config.project.url || '',
-			}
+					id: config.project.id || '',
+					title: config.project.title || '',
+					url: config.project.url || '',
+				}
 			: null,
 	};
 }

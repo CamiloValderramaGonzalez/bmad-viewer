@@ -1,5 +1,5 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 import { applyStoryStatusUpdate } from '../../src/data/sprint-status-updater.js';
 
 describe('applyStoryStatusUpdate', () => {
@@ -10,7 +10,12 @@ describe('applyStoryStatusUpdate', () => {
   1-2-basic-functionality: backlog
 `;
 
-		const result = applyStoryStatusUpdate(raw, 'sprint-status.yaml', '1-2-basic-functionality', 'in-progress');
+		const result = applyStoryStatusUpdate(
+			raw,
+			'sprint-status.yaml',
+			'1-2-basic-functionality',
+			'in-progress',
+		);
 
 		assert.equal(result.format, 'yaml');
 		assert.match(result.content, /1-2-basic-functionality: in-progress/);
@@ -76,7 +81,13 @@ describe('applyStoryStatusUpdate', () => {
 
 	it('throws when the story does not exist', () => {
 		assert.throws(
-			() => applyStoryStatusUpdate('development_status:\n  epic-1: backlog\n', 'sprint-status.yaml', '1-9-missing', 'done'),
+			() =>
+				applyStoryStatusUpdate(
+					'development_status:\n  epic-1: backlog\n',
+					'sprint-status.yaml',
+					'1-9-missing',
+					'done',
+				),
 			/was not found/,
 		);
 	});

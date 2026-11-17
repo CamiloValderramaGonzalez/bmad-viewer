@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { marked } from 'marked';
 import yaml from 'js-yaml';
+import { marked } from 'marked';
 import { createResult, errorResult } from './result-type.js';
 
 // Configure marked for security

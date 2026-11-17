@@ -1,4 +1,5 @@
 generated: 2026-03-28
+last_updated: 2026-11-17
 project: bmad-viewer
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts/stories
@@ -15,12 +16,12 @@ development_status:
   epic-2: in-progress
   2-1-load-planning-and-implementation-artifacts: done
   2-2-drag-and-drop-local-status-persistence: done
-  2-3-board-ux-polish-and-status-feedback: in-progress
+  2-3-board-ux-polish-and-status-feedback: done
   epic-2-retrospective: optional
 
   # Epic 3: External Platform Sync
   epic-3: in-progress
-  3-1-github-issues-and-project-board-sync: in-progress
+  3-1-github-issues-and-project-board-sync: done
   3-2-jira-connector-and-state-mapping: backlog
   3-3-azure-devops-connector-and-state-mapping: backlog
   epic-3-retrospective: optional
@@ -28,13 +29,13 @@ development_status:
   # Epic 4: Product Quality And Adoption
   epic-4: in-progress
   4-1-test-coverage-for-board-and-integrations: done
-  4-2-documentation-and-onboarding-refresh: ready-for-dev
-  4-3-release-quality-and-lint-stability: backlog
+  4-2-documentation-and-onboarding-refresh: done
+  4-3-release-quality-and-lint-stability: done
   epic-4-retrospective: optional
 
   # Epic 5: VS Code Extension Experience
   epic-5: in-progress
   5-1-extension-scaffold-and-embedded-viewer-host: done
   5-2-workspace-bmad-detection-and-local-actions: done
-  5-3-vs-code-ux-settings-and-distribution: in-progress
+  5-3-vs-code-ux-settings-and-distribution: done
   epic-5-retrospective: optional

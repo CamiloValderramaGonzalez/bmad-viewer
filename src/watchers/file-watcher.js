@@ -1,5 +1,5 @@
-import chokidar from 'chokidar';
 import { join } from 'node:path';
+import chokidar from 'chokidar';
 
 /**
  * Create a file watcher for the BMAD directory.

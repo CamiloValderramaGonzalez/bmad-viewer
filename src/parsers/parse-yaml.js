@@ -27,7 +27,7 @@ export function parseYaml(filePath) {
 export function parseYamlContent(content, source = 'unknown') {
 	try {
 		const docs = yaml.loadAll(content);
-		const nonNull = docs.filter(d => d !== undefined && d !== null);
+		const nonNull = docs.filter((d) => d !== undefined && d !== null);
 
 		if (nonNull.length === 0) {
 			return createResult(null, [], [`Empty YAML content in ${source}`]);

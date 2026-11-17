@@ -3,7 +3,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { loadIntegrationsConfig, saveGitHubIntegration, toPublicIntegrationsConfig } from '../../src/integrations/integration-store.js';
+import {
+	loadIntegrationsConfig,
+	saveGitHubIntegration,
+	toPublicIntegrationsConfig,
+} from '../../src/integrations/integration-store.js';
 
 describe('integration store', () => {
 	it('persists github integration config', () => {

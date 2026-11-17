@@ -1,4 +1,4 @@
-import { join, resolve, normalize, relative, extname, basename, dirname } from 'node:path';
+import { basename, dirname, extname, join, normalize, relative, resolve } from 'node:path';
 
 /**
  * Normalize path separators for cross-platform compatibility.

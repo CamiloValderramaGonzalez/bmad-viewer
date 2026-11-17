@@ -1,8 +1,8 @@
-import { BaseLayout } from '../templates/base-layout.js';
-import { SidebarNav } from '../components/sidebar-nav.js';
-import { StatsBox } from '../components/stats-box.js';
 import { KanbanColumn } from '../components/kanban-column.js';
 import { ProgressBar } from '../components/progress-bar.js';
+import { SidebarNav } from '../components/sidebar-nav.js';
+import { StatsBox } from '../components/stats-box.js';
+import { BaseLayout } from '../templates/base-layout.js';
 import { escapeHtml } from '../utils/html-escape.js';
 
 /**
@@ -30,9 +30,11 @@ export function renderDashboard(dataModel) {
 		<div class="content-area__breadcrumb" id="wiki-breadcrumb"></div>
 		<div class="content-area__body" id="wiki-content-body">
 			<h1>${escapeHtml(config.project_name || 'BMAD')} ${config.project_name ? '- bmad-viewer' : 'Viewer'}</h1>
-			${config.projectContextHtml
-				? `<div class="project-intro">${config.projectContextHtml}</div>`
-				: ''}
+			${
+				config.projectContextHtml
+					? `<div class="project-intro">${config.projectContextHtml}</div>`
+					: ''
+			}
 			<p>Select an item from the sidebar to view its content, or use <kbd>Ctrl+K</kbd> to search.</p>
 		</div>
 	</main>
@@ -75,22 +77,26 @@ export function renderDashboard(dataModel) {
 </div>`;
 
 	// Mix bugs and pendientes into kanban columns as cards
-	const pendingGlobal = (project.pendingItems || []).filter(i => !i.done).map(i => ({
-		id: `global-${i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-		title: i.title,
-		status: 'backlog',
-		epic: 'Global',
-		detail: i.detail,
-		cardType: 'global',
-	}));
-	const doneGlobal = (project.pendingItems || []).filter(i => i.done).map(i => ({
-		id: `global-${i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-		title: i.title,
-		status: 'done',
-		epic: 'Global',
-		cardType: 'global',
-	}));
-	const bugCards = (project.bugs || []).map(b => ({
+	const pendingGlobal = (project.pendingItems || [])
+		.filter((i) => !i.done)
+		.map((i) => ({
+			id: `global-${i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+			title: i.title,
+			status: 'backlog',
+			epic: 'Global',
+			detail: i.detail,
+			cardType: 'global',
+		}));
+	const doneGlobal = (project.pendingItems || [])
+		.filter((i) => i.done)
+		.map((i) => ({
+			id: `global-${i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+			title: i.title,
+			status: 'done',
+			epic: 'Global',
+			cardType: 'global',
+		}));
+	const bugCards = (project.bugs || []).map((b) => ({
 		id: b.id.toLowerCase(),
 		title: b.description,
 		status: b.status,
@@ -98,10 +104,30 @@ export function renderDashboard(dataModel) {
 		cardType: 'bug',
 	}));
 	const boardColumns = [
-		{ key: 'backlog', title: 'Backlog', stories: [...backlog, ...pendingGlobal, ...bugCards.filter((card) => card.status === 'backlog')] },
-		{ key: 'ready-for-dev', title: 'Ready for Dev', stories: [...readyForDev, ...bugCards.filter((card) => card.status === 'ready-for-dev')] },
-		{ key: 'in-progress', title: 'In Progress', stories: [...inProgress, ...bugCards.filter((card) => card.status === 'in-progress')] },
-		{ key: 'review', title: 'Review', stories: [...review, ...bugCards.filter((card) => card.status === 'review')] },
+		{
+			key: 'backlog',
+			title: 'Backlog',
+			stories: [
+				...backlog,
+				...pendingGlobal,
+				...bugCards.filter((card) => card.status === 'backlog'),
+			],
+		},
+		{
+			key: 'ready-for-dev',
+			title: 'Ready for Dev',
+			stories: [...readyForDev, ...bugCards.filter((card) => card.status === 'ready-for-dev')],
+		},
+		{
+			key: 'in-progress',
+			title: 'In Progress',
+			stories: [...inProgress, ...bugCards.filter((card) => card.status === 'in-progress')],
+		},
+		{
+			key: 'review',
+			title: 'Review',
+			stories: [...review, ...bugCards.filter((card) => card.status === 'review')],
+		},
 		{ key: 'done', title: 'Done', stories: [...done, ...doneBugsAndGlobals(bugCards, doneGlobal)] },
 	];
 
@@ -151,10 +177,7 @@ export function renderDashboard(dataModel) {
 }
 
 function doneBugsAndGlobals(bugCards, doneGlobal) {
-	return [
-		...bugCards.filter((card) => card.status === 'done'),
-		...doneGlobal,
-	];
+	return [...bugCards.filter((card) => card.status === 'done'), ...doneGlobal];
 }
 
 function renderIntegrationsLauncher() {
@@ -323,7 +346,9 @@ function buildContentMap(wiki, project) {
 				const parts = story.id.split('-');
 				const storyKey = `${parts[0]}-${parts[1]}`;
 				const epicContent = storyContents[storyKey];
-				const statusLabel = (story.status || 'backlog').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+				const statusLabel = (story.status || 'backlog')
+					.replace(/-/g, ' ')
+					.replace(/\b\w/g, (c) => c.toUpperCase());
 				const statusBadge = `<p><strong>Epic ${escapeHtml(epic.num)}:</strong> ${escapeHtml(epic.name)} &nbsp; <span class="badge badge--${escapeHtml(story.status)}">${escapeHtml(statusLabel)}</span></p>`;
 
 				map[key] = {

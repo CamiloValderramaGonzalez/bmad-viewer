@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { mapProjectToGitHubItems, parseBmadMarker, planGitHubSync } from '../../src/integrations/github/github-mapper.js';
+import {
+	mapProjectToGitHubItems,
+	parseBmadMarker,
+	planGitHubSync,
+} from '../../src/integrations/github/github-mapper.js';
 
 describe('github mapper', () => {
 	const project = {

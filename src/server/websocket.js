@@ -28,7 +28,8 @@ export function broadcastChange(changedPaths) {
 	});
 
 	for (const client of wss.clients) {
-		if (client.readyState === 1) { // WebSocket.OPEN
+		if (client.readyState === 1) {
+			// WebSocket.OPEN
 			client.send(message);
 		}
 	}

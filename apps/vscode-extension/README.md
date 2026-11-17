@@ -39,8 +39,8 @@ Open the BMAD dashboard inside VS Code, backed by the same local BMAD workspace 
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `bmadViewer.openOnStartup` | `false` | Open the dashboard automatically when VS Code starts with a workspace |
-| `bmadViewer.preferredPort` | `4100` | Preferred localhost port for the embedded server |
+| `bmadViewer.openOnStartup` | `false` | Open the dashboard automatically when VS Code starts, only if a BMAD project (`_bmad/`) is detected |
+| `bmadViewer.preferredPort` | `4100` | Preferred localhost port for the embedded server; changing it restarts the viewer server |
 
 ## Commands
 

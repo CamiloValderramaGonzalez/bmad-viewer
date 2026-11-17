@@ -1,17 +1,27 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
-import { join, extname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { extname, join } from 'node:path';
 import { dirname } from 'node:path';
-import { getMimeType } from './mime-types.js';
-import { findAvailablePort } from './port-finder.js';
-import { attachWebSocket, broadcastChange, closeAllConnections } from './websocket.js';
-import { createFileWatcher } from '../watchers/file-watcher.js';
+import { fileURLToPath } from 'node:url';
 import { buildDataModel } from '../data/data-model.js';
 import { updateSprintStatusFile } from '../data/sprint-status-updater.js';
-import { loadIntegrationsConfig, toPublicIntegrationsConfig } from '../integrations/integration-store.js';
-import { applyGitHubSync, connectGitHubIntegration, hasGitHubIntegration, previewGitHubSync, syncGitHubProject, syncGitHubStatusForStory } from '../integrations/github/github-sync.js';
+import {
+	applyGitHubSync,
+	connectGitHubIntegration,
+	hasGitHubIntegration,
+	previewGitHubSync,
+	syncGitHubProject,
+	syncGitHubStatusForStory,
+} from '../integrations/github/github-sync.js';
+import {
+	loadIntegrationsConfig,
+	toPublicIntegrationsConfig,
+} from '../integrations/integration-store.js';
+import { createFileWatcher } from '../watchers/file-watcher.js';
+import { getMimeType } from './mime-types.js';
+import { findAvailablePort } from './port-finder.js';
 import { renderDashboard } from './renderer.js';
+import { attachWebSocket, broadcastChange, closeAllConnections } from './websocket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,22 +61,34 @@ export async function startServer({
 		const pathname = url.pathname;
 
 		// Security headers
-		res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*");
+		res.setHeader(
+			'Content-Security-Policy',
+			"default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws://localhost:* ws://127.0.0.1:*",
+		);
 		res.setHeader('X-Content-Type-Options', 'nosniff');
 
 		// API endpoint: set custom paths
 		if (pathname === '/api/set-paths' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', () => {
 				try {
 					const data = JSON.parse(body);
 					if (data.epicsPath !== undefined) overrides.customEpicsPath = data.epicsPath || null;
 					if (data.outputPath !== undefined) overrides.customOutputPath = data.outputPath || null;
-					if (data.sprintStatusPath !== undefined) overrides.customSprintStatusPath = data.sprintStatusPath || null;
+					if (data.sprintStatusPath !== undefined)
+						overrides.customSprintStatusPath = data.sprintStatusPath || null;
 					dataModel = buildDataModel(bmadDir, overrides);
 					res.writeHead(200, { 'Content-Type': 'application/json' });
-					res.end(JSON.stringify({ ok: true, epics: dataModel.project.epics.length, stories: dataModel.project.stories.total }));
+					res.end(
+						JSON.stringify({
+							ok: true,
+							epics: dataModel.project.epics.length,
+							stories: dataModel.project.stories.total,
+						}),
+					);
 				} catch {
 					res.writeHead(400, { 'Content-Type': 'application/json' });
 					res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
@@ -92,7 +114,9 @@ export async function startServer({
 		// API endpoint: connect github integration
 		if (pathname === '/api/integrations/github/connect' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', async () => {
 				try {
 					const payload = JSON.parse(body);
@@ -101,7 +125,13 @@ export async function startServer({
 					res.end(JSON.stringify({ ok: true, ...result }));
 				} catch (error) {
 					res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Could not connect GitHub integration' }));
+					res.end(
+						JSON.stringify({
+							ok: false,
+							error:
+								error instanceof Error ? error.message : 'Could not connect GitHub integration',
+						}),
+					);
 				}
 			});
 			return;
@@ -110,7 +140,9 @@ export async function startServer({
 		// API endpoint: preview github sync
 		if (pathname === '/api/integrations/github/preview' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', async () => {
 				try {
 					if (body) JSON.parse(body);
@@ -120,7 +152,12 @@ export async function startServer({
 					res.end(JSON.stringify({ ok: true, ...result }));
 				} catch (error) {
 					res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Could not preview GitHub sync' }));
+					res.end(
+						JSON.stringify({
+							ok: false,
+							error: error instanceof Error ? error.message : 'Could not preview GitHub sync',
+						}),
+					);
 				}
 			});
 			return;
@@ -129,7 +166,9 @@ export async function startServer({
 		// API endpoint: apply github sync
 		if (pathname === '/api/integrations/github/sync' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', async () => {
 				try {
 					if (body) JSON.parse(body);
@@ -139,7 +178,12 @@ export async function startServer({
 					res.end(JSON.stringify({ ok: true, ...result }));
 				} catch (error) {
 					res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Could not sync GitHub issues' }));
+					res.end(
+						JSON.stringify({
+							ok: false,
+							error: error instanceof Error ? error.message : 'Could not sync GitHub issues',
+						}),
+					);
 				}
 			});
 			return;
@@ -148,7 +192,9 @@ export async function startServer({
 		// API endpoint: create or sync github project board
 		if (pathname === '/api/integrations/github/project/sync' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', async () => {
 				try {
 					if (body) JSON.parse(body);
@@ -158,7 +204,13 @@ export async function startServer({
 					res.end(JSON.stringify({ ok: true, ...result }));
 				} catch (error) {
 					res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Could not create GitHub project board' }));
+					res.end(
+						JSON.stringify({
+							ok: false,
+							error:
+								error instanceof Error ? error.message : 'Could not create GitHub project board',
+						}),
+					);
 				}
 			});
 			return;
@@ -167,7 +219,9 @@ export async function startServer({
 		// API endpoint: sync a moved story status to GitHub immediately
 		if (pathname === '/api/integrations/github/story-status' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', async () => {
 				try {
 					const payload = JSON.parse(body);
@@ -178,12 +232,21 @@ export async function startServer({
 					}
 
 					dataModel = buildDataModel(bmadDir, overrides);
-					const result = await syncGitHubStatusForStory(bmadDir, dataModel.project, payload.storyId);
+					const result = await syncGitHubStatusForStory(
+						bmadDir,
+						dataModel.project,
+						payload.storyId,
+					);
 					res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
 					res.end(JSON.stringify({ ok: true, ...result }));
 				} catch (error) {
 					res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Could not sync GitHub status' }));
+					res.end(
+						JSON.stringify({
+							ok: false,
+							error: error instanceof Error ? error.message : 'Could not sync GitHub status',
+						}),
+					);
 				}
 			});
 			return;
@@ -192,7 +255,9 @@ export async function startServer({
 		// API endpoint: update story status in sprint-status
 		if (pathname === '/api/story-status' && req.method === 'POST') {
 			let body = '';
-			req.on('data', chunk => { body += chunk; });
+			req.on('data', (chunk) => {
+				body += chunk;
+			});
 			req.on('end', () => {
 				try {
 					const data = JSON.parse(body);
@@ -202,7 +267,12 @@ export async function startServer({
 
 					if (!sprintBoard?.editable || !sprintBoard.sprintStatusPath) {
 						res.writeHead(400, { 'Content-Type': 'application/json' });
-						res.end(JSON.stringify({ ok: false, error: 'Board is read-only because no writable sprint-status source was detected' }));
+						res.end(
+							JSON.stringify({
+								ok: false,
+								error: 'Board is read-only because no writable sprint-status source was detected',
+							}),
+						);
 						return;
 					}
 
@@ -214,14 +284,21 @@ export async function startServer({
 
 					dataModel = buildDataModel(bmadDir, overrides);
 					res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({
-						ok: true,
-						update,
-						stories: dataModel.project.stories,
-					}));
+					res.end(
+						JSON.stringify({
+							ok: true,
+							update,
+							stories: dataModel.project.stories,
+						}),
+					);
 				} catch (error) {
 					res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-					res.end(JSON.stringify({ ok: false, error: error instanceof Error ? error.message : 'Could not update story status' }));
+					res.end(
+						JSON.stringify({
+							ok: false,
+							error: error instanceof Error ? error.message : 'Could not update story status',
+						}),
+					);
 				}
 			});
 			return;
@@ -347,35 +424,35 @@ export async function startServer({
 		server.once('error', reject);
 		server.listen(actualPort, host, () => {
 			server.off('error', reject);
-		console.log(`\n  bmad-viewer running at ${url}`);
-		if (interactive) {
-			console.log('  Press o to open in browser, q to quit\n');
-		} else {
-			console.log('');
-		}
+			console.log(`\n  bmad-viewer running at ${url}`);
+			if (interactive) {
+				console.log('  Press o to open in browser, q to quit\n');
+			} else {
+				console.log('');
+			}
 
-		if (open) {
-			openBrowser(url);
-		}
+			if (open) {
+				openBrowser(url);
+			}
 
-		// Listen for keypresses
-		if (interactive && process.stdin.isTTY) {
-			process.stdin.setRawMode(true);
-			process.stdin.resume();
-			stdinHandler = (key) => {
-				const ch = key.toString();
-				if (ch === 'o' || ch === 'O') {
-					openBrowser(url);
-					console.log(`  Opening ${url}`);
-				} else if (ch === 'q' || ch === 'Q' || ch === '\u0003') {
-					console.log('\nShutting down...');
-					void close().finally(() => process.exit(0));
-				}
-			};
-			process.stdin.on('data', stdinHandler);
-		}
-		resolve();
-	});
+			// Listen for keypresses
+			if (interactive && process.stdin.isTTY) {
+				process.stdin.setRawMode(true);
+				process.stdin.resume();
+				stdinHandler = (key) => {
+					const ch = key.toString();
+					if (ch === 'o' || ch === 'O') {
+						openBrowser(url);
+						console.log(`  Opening ${url}`);
+					} else if (ch === 'q' || ch === 'Q' || ch === '\u0003') {
+						console.log('\nShutting down...');
+						void close().finally(() => process.exit(0));
+					}
+				};
+				process.stdin.on('data', stdinHandler);
+			}
+			resolve();
+		});
 	});
 
 	return {
@@ -392,12 +469,7 @@ export async function startServer({
  */
 function openBrowser(url) {
 	const { platform } = process;
-	const cmd =
-		platform === 'darwin'
-			? 'open'
-			: platform === 'win32'
-				? 'start'
-				: 'xdg-open';
+	const cmd = platform === 'darwin' ? 'open' : platform === 'win32' ? 'start' : 'xdg-open';
 
 	import('node:child_process').then(({ exec }) => {
 		exec(`${cmd} ${url}`);

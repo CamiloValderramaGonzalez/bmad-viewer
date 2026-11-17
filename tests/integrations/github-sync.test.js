@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { normalizeGitHubRepositoryInput, pickGitHubProjectStatusOption, validateGitHubIntegrationConfig } from '../../src/integrations/github/github-sync.js';
+import {
+	normalizeGitHubRepositoryInput,
+	pickGitHubProjectStatusOption,
+	validateGitHubIntegrationConfig,
+} from '../../src/integrations/github/github-sync.js';
 
 describe('github sync config', () => {
 	it('accepts owner/repo combined in repository field', () => {

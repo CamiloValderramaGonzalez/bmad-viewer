@@ -87,8 +87,9 @@ export function SidebarNav({ modules, artifacts, epics, artifactGroups }) {
 
 	// Build categorized artifact sections
 	const groups = artifactGroups || {};
-	const categorySections = CATEGORY_ORDER
-		.filter((cat) => groups[cat.key] && groups[cat.key].length > 0)
+	const categorySections = CATEGORY_ORDER.filter(
+		(cat) => groups[cat.key] && groups[cat.key].length > 0,
+	)
 		.map((cat) => {
 			const items = groups[cat.key];
 			const itemsHtml = items
@@ -128,10 +129,18 @@ export function SidebarNav({ modules, artifacts, epics, artifactGroups }) {
 		<a href="#project" class="sidebar-nav__dashboard-link">
 			<span>&#128202;</span> Sprint Dashboard
 		</a>
-		${epicsList ? `<h2 class="sidebar-nav__heading">Epics</h2>
-		<ul class="sidebar-nav__list">${epicsList}</ul>` : ''}
-		${categorySections ? `<h2 class="sidebar-nav__heading">Artifacts</h2>
-		<ul class="sidebar-nav__list">${categorySections}</ul>` : ''}
+		${
+			epicsList
+				? `<h2 class="sidebar-nav__heading">Epics</h2>
+		<ul class="sidebar-nav__list">${epicsList}</ul>`
+				: ''
+		}
+		${
+			categorySections
+				? `<h2 class="sidebar-nav__heading">Artifacts</h2>
+		<ul class="sidebar-nav__list">${categorySections}</ul>`
+				: ''
+		}
 	</div>
 </nav>`;
 }
@@ -141,21 +150,36 @@ export function SidebarNav({ modules, artifacts, epics, artifactGroups }) {
  */
 function getTypeIcon(type) {
 	switch (type) {
-		case 'agent': return '&#129302;';
-		case 'workflow': return '&#9881;';
-		case 'tasks': return '&#9745;';
-		case 'resources': return '&#128218;';
-		case 'teams': return '&#128101;';
-		case 'story': return '&#128203;';
-		case 'data': return '&#128202;';
-		case 'testarch': return '&#128295;';
-		case 'research': return '&#128270;';
-		case 'analysis': return '&#128161;';
-		case 'test-arch': return '&#128295;';
-		case 'cis': return '&#10024;';
-		case 'bmb-creation': return '&#128296;';
-		case 'diagram': return '&#128202;';
-		default: return '&#128196;';
+		case 'agent':
+			return '&#129302;';
+		case 'workflow':
+			return '&#9881;';
+		case 'tasks':
+			return '&#9745;';
+		case 'resources':
+			return '&#128218;';
+		case 'teams':
+			return '&#128101;';
+		case 'story':
+			return '&#128203;';
+		case 'data':
+			return '&#128202;';
+		case 'testarch':
+			return '&#128295;';
+		case 'research':
+			return '&#128270;';
+		case 'analysis':
+			return '&#128161;';
+		case 'test-arch':
+			return '&#128295;';
+		case 'cis':
+			return '&#10024;';
+		case 'bmb-creation':
+			return '&#128296;';
+		case 'diagram':
+			return '&#128202;';
+		default:
+			return '&#128196;';
 	}
 }
 
@@ -164,9 +188,12 @@ function getTypeIcon(type) {
  */
 function getEpicStatusIcon(status) {
 	switch (status) {
-		case 'done': return '&#9989;';
-		case 'in-progress': return '&#128994;';
-		default: return '&#9898;';
+		case 'done':
+			return '&#9989;';
+		case 'in-progress':
+			return '&#128994;';
+		default:
+			return '&#9898;';
 	}
 }
 
@@ -176,12 +203,18 @@ function getEpicStatusIcon(status) {
 function getArtifactIcon(name, category) {
 	if (category) {
 		switch (category) {
-			case 'research': return '&#128270;';
-			case 'analysis': return '&#128161;';
-			case 'test-arch': return '&#128295;';
-			case 'cis': return '&#10024;';
-			case 'bmb-creation': return '&#128296;';
-			case 'diagram': return '&#128202;';
+			case 'research':
+				return '&#128270;';
+			case 'analysis':
+				return '&#128161;';
+			case 'test-arch':
+				return '&#128295;';
+			case 'cis':
+				return '&#10024;';
+			case 'bmb-creation':
+				return '&#128296;';
+			case 'diagram':
+				return '&#128202;';
 		}
 	}
 	const lower = (name || '').toLowerCase();

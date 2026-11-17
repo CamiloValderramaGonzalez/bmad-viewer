@@ -39,7 +39,8 @@
 		"onCommand:bmadViewer.focus",
 		"onCommand:bmadViewer.refresh",
 		"onCommand:bmadViewer.openInBrowser",
-		"onCommand:bmadViewer.selectWorkspaceFolder"
+		"onCommand:bmadViewer.selectWorkspaceFolder",
+		"onStartupFinished"
 	],
 	"contributes": {
 		"commands": [
@@ -107,14 +108,14 @@
 				"bmadViewer.openOnStartup": {
 					"type": "boolean",
 					"default": false,
-					"description": "Open the BMAD Viewer container automatically when VS Code starts with a workspace."
+					"description": "Open the BMAD Viewer dashboard automatically when VS Code starts, only if a BMAD project (_bmad/) is detected in the workspace."
 				},
 				"bmadViewer.preferredPort": {
 					"type": "number",
 					"default": 4100,
 					"minimum": 1024,
 					"maximum": 65535,
-					"description": "Preferred localhost port for the embedded BMAD Viewer server. The next available port is used if this one is busy."
+					"description": "Preferred localhost port for the embedded BMAD Viewer server. The next available port is used if this one is busy. Changing it restarts the viewer server."
 				}
 			}
 		}

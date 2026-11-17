@@ -2,11 +2,14 @@ const vscode = require('vscode');
 const path = require('node:path');
 const { readFileSync } = require('node:fs');
 const { pathToFileURL } = require('node:url');
+const { shouldOpenOnStartup, themeForKind, withTheme } = require('./lib/viewer-url.cjs');
 
 const VIEW_CONTAINER_COMMAND = 'workbench.view.extension.bmadViewer';
 const VIEW_ID = 'bmadViewer.dashboard';
 const EXTENSION_CONFIG = 'bmadViewer';
 const EDITOR_PANEL_TYPE = 'bmadViewer.editorPanel';
+
+let activeServerManager = null;
 
 // ── Shared server & module loader ──────────────────────────────────
 
@@ -38,7 +41,9 @@ class BmadServerManager {
 		}
 
 		if (this.selectedWorkspaceFolder) {
-			const stillPresent = workspaceFolders.find((folder) => folder.uri.toString() === this.selectedWorkspaceFolder.uri.toString());
+			const stillPresent = workspaceFolders.find(
+				(folder) => folder.uri.toString() === this.selectedWorkspaceFolder.uri.toString(),
+			);
 			if (stillPresent) {
 				return stillPresent;
 			}
@@ -59,7 +64,9 @@ class BmadServerManager {
 	async selectWorkspaceFolder() {
 		const workspaceFolders = vscode.workspace.workspaceFolders ?? [];
 		if (!workspaceFolders.length) {
-			void vscode.window.showInformationMessage('Open a workspace folder first to choose a BMAD project.');
+			void vscode.window.showInformationMessage(
+				'Open a workspace folder first to choose a BMAD project.',
+			);
 			return;
 		}
 
@@ -88,7 +95,9 @@ class BmadServerManager {
 
 		await this.stopServer();
 
-		const preferredPort = vscode.workspace.getConfiguration(EXTENSION_CONFIG).get('preferredPort', 4100);
+		const preferredPort = vscode.workspace
+			.getConfiguration(EXTENSION_CONFIG)
+			.get('preferredPort', 4100);
 		const { startServer } = await this.loadViewerModules();
 
 		this.serverHandle = await startServer({
@@ -117,9 +126,15 @@ class BmadServerManager {
 	async loadViewerModules() {
 		if (!this.viewerModulesPromise) {
 			const viewerRoot = path.join(this.context.extensionPath, 'vendor', 'bmad-viewer');
-			const startServerUrl = pathToFileURL(path.join(viewerRoot, 'src', 'server', 'http-server.js')).href;
-			const detectBmadUrl = pathToFileURL(path.join(viewerRoot, 'src', 'data', 'bmad-detector.js')).href;
-			const dataModelUrl = pathToFileURL(path.join(viewerRoot, 'src', 'data', 'data-model.js')).href;
+			const startServerUrl = pathToFileURL(
+				path.join(viewerRoot, 'src', 'server', 'http-server.js'),
+			).href;
+			const detectBmadUrl = pathToFileURL(
+				path.join(viewerRoot, 'src', 'data', 'bmad-detector.js'),
+			).href;
+			const dataModelUrl = pathToFileURL(
+				path.join(viewerRoot, 'src', 'data', 'data-model.js'),
+			).href;
 
 			this.viewerModulesPromise = Promise.all([
 				import(startServerUrl),
@@ -231,14 +246,27 @@ class BmadEditorPanel {
 			}
 
 			if (!state.bmadDir) {
-				this.panel.webview.html = renderEditorMissingBmad(this.panel.webview, this.logoUri, state.workspaceFolder);
+				this.panel.webview.html = renderEditorMissingBmad(
+					this.panel.webview,
+					this.logoUri,
+					state.workspaceFolder,
+				);
 				return;
 			}
 
 			const serverUrl = await this.serverManager.ensureServer(state.bmadDir);
-			this.panel.webview.html = renderEditorViewer(this.panel.webview, serverUrl, state.workspaceFolder, state.bmadDir);
+			this.panel.webview.html = renderEditorViewer(
+				this.panel.webview,
+				serverUrl,
+				state.workspaceFolder,
+				state.bmadDir,
+			);
 		} catch (error) {
-			this.panel.webview.html = renderEditorError(this.panel.webview, this.logoUri, error instanceof Error ? error.message : 'Unknown error.');
+			this.panel.webview.html = renderEditorError(
+				this.panel.webview,
+				this.logoUri,
+				error instanceof Error ? error.message : 'Unknown error.',
+			);
 		}
 	}
 }
@@ -302,7 +330,11 @@ class BmadSidebarProvider {
 			}
 			this.webviewView.webview.html = renderSidebar(this.webviewView.webview, logoUri, state);
 		} catch (error) {
-			this.webviewView.webview.html = renderSidebar(this.webviewView.webview, logoUri, { workspaceFolder: null, bmadDir: null, error: error instanceof Error ? error.message : 'Unknown error' });
+			this.webviewView.webview.html = renderSidebar(this.webviewView.webview, logoUri, {
+				workspaceFolder: null,
+				bmadDir: null,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			});
 		}
 	}
 }
@@ -615,7 +647,7 @@ function renderEditorViewer(webview, serverUrl, workspaceFolder, bmadDir) {
 		`style-src ${webview.cspSource} 'unsafe-inline'`,
 		`img-src ${webview.cspSource} https: data:`,
 		`script-src 'nonce-${nonce}'`,
-		`frame-src http://localhost:* http://127.0.0.1:*`,
+		'frame-src http://localhost:* http://127.0.0.1:*',
 	].join('; ');
 
 	return `<!DOCTYPE html>
@@ -681,7 +713,7 @@ function renderEditorViewer(webview, serverUrl, workspaceFolder, bmadDir) {
 			<button class="primary" data-action="open-in-browser">Open in browser</button>
 		</div>
 	</section>
-	<iframe src="${serverUrl}" title="BMAD Viewer dashboard"></iframe>
+	<iframe src="${escapeHtml(withTheme(serverUrl, currentTheme()))}" title="BMAD Viewer dashboard"></iframe>
 	<script nonce="${nonce}">
 		const vscode = acquireVsCodeApi();
 		for (const button of document.querySelectorAll('button[data-action]')) {
@@ -741,26 +773,35 @@ function renderEditorStateCard(webview, logoUri, title, description, primaryLabe
 }
 
 function renderEditorEmpty(webview, logoUri) {
-	return renderEditorStateCard(webview, logoUri,
+	return renderEditorStateCard(
+		webview,
+		logoUri,
 		'Open a folder to get started',
 		'BMAD Viewer needs a workspace folder with a _bmad directory to display your project dashboard.',
-		'Open Folder', 'open-folder',
+		'Open Folder',
+		'open-folder',
 	);
 }
 
 function renderEditorMissingBmad(webview, logoUri, workspaceFolder) {
-	return renderEditorStateCard(webview, logoUri,
+	return renderEditorStateCard(
+		webview,
+		logoUri,
 		'No BMAD project found',
 		`No _bmad folder was found in "${workspaceFolder.name}". Make sure your workspace contains a _bmad directory.`,
-		'Choose Another Folder', 'select-workspace-folder',
+		'Choose Another Folder',
+		'select-workspace-folder',
 	);
 }
 
 function renderEditorError(webview, logoUri, message) {
-	return renderEditorStateCard(webview, logoUri,
+	return renderEditorStateCard(
+		webview,
+		logoUri,
 		'Something went wrong',
 		message,
-		'Retry', 'refresh',
+		'Retry',
+		'refresh',
 	);
 }
 
@@ -773,6 +814,10 @@ function escapeHtml(value) {
 		.replaceAll('>', '&gt;')
 		.replaceAll('"', '&quot;')
 		.replaceAll("'", '&#39;');
+}
+
+function currentTheme() {
+	return themeForKind(vscode.window.activeColorTheme?.kind);
 }
 
 function getNonce() {
@@ -789,6 +834,7 @@ function loadExtensionVersion(context) {
 
 function activate(context) {
 	const serverManager = new BmadServerManager(context);
+	activeServerManager = serverManager;
 	const sidebarProvider = new BmadSidebarProvider(context, serverManager);
 
 	context.subscriptions.push(
@@ -829,11 +875,36 @@ function activate(context) {
 			}
 		}),
 		vscode.workspace.onDidChangeConfiguration((event) => {
-			if (event.affectsConfiguration(EXTENSION_CONFIG)) {
-				void sidebarProvider.refresh();
-				if (BmadEditorPanel.currentPanel) {
-					void BmadEditorPanel.currentPanel.update();
+			if (!event.affectsConfiguration(EXTENSION_CONFIG)) {
+				return;
+			}
+			void (async () => {
+				try {
+					if (event.affectsConfiguration(`${EXTENSION_CONFIG}.preferredPort`)) {
+						// The running server is reused otherwise; restart it on the new port.
+						await serverManager.stopServer();
+						const state = await serverManager.getWorkspaceState();
+						if (state.bmadDir) {
+							await serverManager.ensureServer(state.bmadDir);
+						}
+					}
+					await sidebarProvider.refresh();
+					if (BmadEditorPanel.currentPanel) {
+						await BmadEditorPanel.currentPanel.update();
+					}
+				} catch (error) {
+					void vscode.window.showErrorMessage(
+						`BMAD Viewer could not apply the new settings: ${
+							error instanceof Error ? error.message : String(error)
+						}`,
+					);
 				}
+			})();
+		}),
+		vscode.window.onDidChangeActiveColorTheme(() => {
+			void sidebarProvider.refresh();
+			if (BmadEditorPanel.currentPanel) {
+				void BmadEditorPanel.currentPanel.update();
 			}
 		}),
 		{
@@ -844,15 +915,34 @@ function activate(context) {
 	);
 
 	const extensionVersion = loadExtensionVersion(context);
-	void vscode.commands.executeCommand('setContext', 'bmadViewer.extensionVersion', extensionVersion);
+	void vscode.commands.executeCommand(
+		'setContext',
+		'bmadViewer.extensionVersion',
+		extensionVersion,
+	);
 
-	if (vscode.workspace.getConfiguration(EXTENSION_CONFIG).get('openOnStartup', false) && (vscode.workspace.workspaceFolders?.length ?? 0) > 0) {
-		void BmadEditorPanel.open(context, serverManager);
+	const openOnStartup = vscode.workspace
+		.getConfiguration(EXTENSION_CONFIG)
+		.get('openOnStartup', false);
+	if (openOnStartup) {
+		void serverManager
+			.getWorkspaceState()
+			.then((state) => {
+				if (shouldOpenOnStartup({ openOnStartup, bmadDir: state.bmadDir })) {
+					return BmadEditorPanel.open(context, serverManager);
+				}
+				return undefined;
+			})
+			.catch((error) => {
+				console.error('BMAD Viewer: failed to open the dashboard at startup.', error);
+			});
 	}
 }
 
 function deactivate() {
-	return undefined;
+	const serverManager = activeServerManager;
+	activeServerManager = null;
+	return serverManager ? serverManager.dispose() : undefined;
 }
 
 module.exports = {

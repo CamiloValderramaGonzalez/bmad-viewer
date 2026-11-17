@@ -1,5 +1,5 @@
-import { existsSync, statSync, readFileSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 const MAX_PARENT_LEVELS = 3;
 const BMAD_DIR_NAME = '_bmad';
@@ -51,9 +51,10 @@ export function detectBmadVersion(bmadDir) {
 				return {
 					version,
 					compatible: majorVersion >= 6,
-					warning: majorVersion < 6
-						? `Detected BMAD v${majorVersion}. Viewer optimized for v6+. Some features may not be available.`
-						: null,
+					warning:
+						majorVersion < 6
+							? `Detected BMAD v${majorVersion}. Viewer optimized for v6+. Some features may not be available.`
+							: null,
 				};
 			}
 		} catch {
@@ -70,9 +71,10 @@ export function detectBmadVersion(bmadDir) {
 			return {
 				version,
 				compatible: majorVersion >= 6,
-				warning: majorVersion < 6
-					? `Detected BMAD v${majorVersion}. Viewer optimized for v6+. Some features may not be available.`
-					: null,
+				warning:
+					majorVersion < 6
+						? `Detected BMAD v${majorVersion}. Viewer optimized for v6+. Some features may not be available.`
+						: null,
 			};
 		} catch {
 			// Ignore read errors

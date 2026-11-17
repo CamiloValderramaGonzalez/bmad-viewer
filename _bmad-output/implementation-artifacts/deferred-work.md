@@ -1,0 +1,54 @@
+- source_spec: none
+  summary: Story 2-3 board UX polish and status feedback.
+  evidence: Split from a multi-story delegation on 2026-11-17; 4-3 lint and CI goes first so later stories land on a green baseline.
+- source_spec: none
+  summary: Story 3-1 GitHub Issues and Project board sync, remaining UX and BMAD-specific representation.
+  evidence: Split from a multi-story delegation on 2026-11-17; queued after 2-3.
+- source_spec: none
+  summary: Story 5-3 VS Code UX, settings and distribution.
+  evidence: Split from a multi-story delegation on 2026-11-17; queued after 3-1.
+- source_spec: none
+  summary: Story 4-2 documentation and onboarding refresh.
+  evidence: Split from a multi-story delegation on 2026-11-17; queued late so the docs describe what shipped.
+- source_spec: none
+  summary: Stories 3-2 Jira and 3-3 Azure DevOps connectors.
+  evidence: Split from a multi-story delegation on 2026-11-17; new connectors that need real accounts to verify.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-3-release-quality-and-lint-stability.md`
+  summary: The pending-items regex in `parseSprintStatusMarkdown` lets `\s*` cross a newline, so a `- [x] item` with no ` - detail` swallows the next `- [ ]` line as its detail.
+  evidence: Found while writing the 4-3 parsing test; pre-existing behaviour, kept unchanged because 4-3 must not change runtime behaviour.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-3-release-quality-and-lint-stability.md`
+  summary: CI installs without a lockfile because the root `package-lock.json` is gitignored, so dependency resolution can drift between runs.
+  evidence: `.gitignore` ignores `package-lock.json` at baseline; fixing it means committing the lockfile and switching CI to `npm ci`, which is a repo policy decision.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-3-release-quality-and-lint-stability.md`
+  summary: `npm publish` would ship the local BMAD skills, because `package.json` `files` includes all of `.claude` and the BMAD install added `.claude/skills/`.
+  evidence: `npm pack --dry-run` on 2026-11-17 lists 214 `.claude/skills/` files; narrowing `files` to `.claude/commands` would publish only the `/viewer` command.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-3-release-quality-and-lint-stability.md`
+  summary: No release smoke check starts the CLI, generates static output or runs `npm pack` before a release.
+  evidence: The epic 4 context lists release smoke checks as a quality gap; 4-3 added only lint and unit tests to the gate.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: The `client.js` wiring for board feedback (deferred reload in `finally`, message restore on load, rejected-fetch mapping) has no automated test.
+  evidence: The repo has no harness that runs the DOM-bound `client.js` IIFE; only the pure helpers in `public/board-feedback.js` are tested in `node:vm`.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: Live board-attribution tests may be timing-sensitive on slow CI (fixed 1 s watcher warm-up, next-message ordering).
+  evidence: Unverified (maybe-false, medium if true); three consecutive local passes. Settle by running the suite on CI several times or matching broadcasts by path.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: A `file-changed` broadcast that arrives while the user is mid-drag reloads the page and drops the drag.
+  evidence: Pre-existing: the reload decision only considers a save or sync in flight, and before 2-3 every broadcast reloaded immediately.
+- source_spec: `_bmad-output/implementation-artifacts/spec-2-3-board-ux-polish-and-status-feedback.md`
+  summary: If the connection drops after the server wrote `sprint-status`, the card is restored with an "unreachable" message although the file holds the new status.
+  evidence: Pre-existing behaviour for a rejected fetch; with a live server the watcher broadcast reloads to the true state, but with a dead server the board and file disagree until restart.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-github-issues-and-project-board-sync.md`
+  summary: A fresh GitHub sync leaves done epics and stories open, because the create-issue request cannot set `closed`; the next sync then closes them, so a re-sync is not write-free.
+  evidence: Pinned by the `todo` test in `tests/integrations/github-sync-flow.test.js`; the fix is a close request right after creating a done item.
+- source_spec: `_bmad-output/implementation-artifacts/spec-3-1-github-issues-and-project-board-sync.md`
+  summary: `getProjectV2` reads only `fields(first: 50)`, so on a Project with more than 50 fields the Status field can be missed.
+  evidence: Pre-existing "first N only" query, the same class as the items paging fixed in 3-1; rare in practice.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-3-vs-code-ux-settings-and-distribution.md`
+  summary: The extension's server manager has no lock, so rapid `preferredPort` changes or a `deactivate` during an in-flight `ensureServer` can start a second server or leak one.
+  evidence: `ensureServer`/`stopServer` in `apps/vscode-extension/extension.cjs` are not serialised; rare in practice (settings typed character by character).
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-documentation-and-onboarding-refresh.md`
+  summary: A pasted GitHub token is stored in plain text in `<project>/.bmad-viewer/integrations.json`, and the viewer does not add `.bmad-viewer/` to the user's `.gitignore`.
+  evidence: `integration-store.js` writes the config with `writeFileSync` and no permission mode; 4-2 documents the risk and recommends the env-var option, but hardening is code work.
+- source_spec: `_bmad-output/implementation-artifacts/spec-4-2-documentation-and-onboarding-refresh.md`
+  summary: Two runtime strings contradict the corrected README: the CLI's no-`_bmad` hint still suggests `./node_modules/bmad-viewer/example-data` (`bin/cli.js:160`), and the GitHub panel says the token is "stored only in the current project" without the plain-text warning (`src/server/renderer.js:276`).
+  evidence: 4-2 was docs-only by its frozen boundary ("Never change runtime code"); both are one-line copy fixes.

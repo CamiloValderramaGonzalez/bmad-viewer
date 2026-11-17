@@ -1,7 +1,7 @@
-import { readdirSync, existsSync, statSync, readFileSync } from 'node:fs';
-import { join, extname, basename, relative, dirname } from 'node:path';
-import { parseYaml } from '../parsers/parse-yaml.js';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { basename, dirname, extname, join, relative } from 'node:path';
 import { parseMarkdownContent } from '../parsers/parse-markdown.js';
+import { parseYaml } from '../parsers/parse-yaml.js';
 import { ErrorAggregator } from '../utils/error-aggregator.js';
 
 /**
@@ -38,8 +38,8 @@ function buildWikiData(bmadPath, aggregator) {
 	try {
 		const entries = readdirSync(bmadPath, { withFileTypes: true });
 		moduleDirs = entries
-			.filter(e => e.isDirectory() && !e.name.startsWith('_'))
-			.map(e => e.name)
+			.filter((e) => e.isDirectory() && !e.name.startsWith('_'))
+			.map((e) => e.name)
 			.sort();
 	} catch {
 		return { modules, allItems };
@@ -52,7 +52,7 @@ function buildWikiData(bmadPath, aggregator) {
 
 		// --- New structure: find SKILL.md files recursively ---
 		const skillFiles = findNamedFilesRecursive(modPath, 'SKILL.md');
-		const skillDirs = new Set(skillFiles.map(f => dirname(f)));
+		const skillDirs = new Set(skillFiles.map((f) => dirname(f)));
 
 		for (const filePath of skillFiles) {
 			const rel = relative(modPath, filePath).replace(/\\/g, '/');
@@ -68,15 +68,21 @@ function buildWikiData(bmadPath, aggregator) {
 			const item = { id, name: formatName(skillDirName), type, path: filePath, ...content };
 
 			if (!groupMap[groupKey]) {
-				groupMap[groupKey] = { name: displayGroup, type: groupKey === '__root__' ? 'skill' : groupKey, items: [], _sortKey: groupName ?? '' };
+				groupMap[groupKey] = {
+					name: displayGroup,
+					type: groupKey === '__root__' ? 'skill' : groupKey,
+					items: [],
+					_sortKey: groupName ?? '',
+				};
 			}
 			groupMap[groupKey].items.push(item);
 			allItems.push(item);
 		}
 
 		// --- New structure: workflow.md files in dirs without SKILL.md ---
-		const workflowFiles = findNamedFilesRecursive(modPath, 'workflow.md')
-			.filter(f => !skillDirs.has(dirname(f)));
+		const workflowFiles = findNamedFilesRecursive(modPath, 'workflow.md').filter(
+			(f) => !skillDirs.has(dirname(f)),
+		);
 
 		for (const filePath of workflowFiles) {
 			const rel = relative(modPath, filePath).replace(/\\/g, '/');
@@ -89,10 +95,21 @@ function buildWikiData(bmadPath, aggregator) {
 
 			const id = `${modName}/${rel.replace('/workflow.md', '')}`;
 			const content = readMarkdownSafe(filePath, aggregator);
-			const item = { id, name: formatName(skillDirName), type: 'workflow', path: filePath, ...content };
+			const item = {
+				id,
+				name: formatName(skillDirName),
+				type: 'workflow',
+				path: filePath,
+				...content,
+			};
 
 			if (!groupMap[groupKey]) {
-				groupMap[groupKey] = { name: displayGroup, type: 'workflows', items: [], _sortKey: groupName ?? '' };
+				groupMap[groupKey] = {
+					name: displayGroup,
+					type: 'workflows',
+					items: [],
+					_sortKey: groupName ?? '',
+				};
 			}
 			groupMap[groupKey].items.push(item);
 			allItems.push(item);
@@ -128,7 +145,12 @@ function buildWikiData(bmadPath, aggregator) {
 				if (workflowItems.length > 0) {
 					const groupKey = '__legacy_workflows__';
 					if (!groupMap[groupKey]) {
-						groupMap[groupKey] = { name: 'Workflows', type: 'workflows', items: [], _sortKey: 'workflows' };
+						groupMap[groupKey] = {
+							name: 'Workflows',
+							type: 'workflows',
+							items: [],
+							_sortKey: 'workflows',
+						};
 					}
 					groupMap[groupKey].items.push(...workflowItems);
 					allItems.push(...workflowItems);
@@ -144,13 +166,24 @@ function buildWikiData(bmadPath, aggregator) {
 					if (files.length > 0) {
 						const groupKey = `__legacy_${dirName}__`;
 						if (!groupMap[groupKey]) {
-							groupMap[groupKey] = { name: formatName(dirName), type: dirName, items: [], _sortKey: dirName };
+							groupMap[groupKey] = {
+								name: formatName(dirName),
+								type: dirName,
+								items: [],
+								_sortKey: dirName,
+							};
 						}
 						for (const filePath of files) {
 							const name = basename(filePath, '.md');
 							const id = `${modName}/${dirName}/${name}`;
 							const content = readMarkdownSafe(filePath, aggregator);
-							const item = { id, name: formatName(name), type: dirName, path: filePath, ...content };
+							const item = {
+								id,
+								name: formatName(name),
+								type: dirName,
+								path: filePath,
+								...content,
+							};
 							groupMap[groupKey].items.push(item);
 							allItems.push(item);
 						}
@@ -161,7 +194,7 @@ function buildWikiData(bmadPath, aggregator) {
 
 		// Sort groups alphabetically and attach to module
 		moduleData.groups = Object.values(groupMap)
-			.filter(g => g.items.length > 0)
+			.filter((g) => g.items.length > 0)
 			.sort((a, b) => a._sortKey.localeCompare(b._sortKey))
 			.map(({ _sortKey, ...g }) => g);
 
@@ -212,7 +245,13 @@ function scanWorkflows(workflowsPath, modName, aggregator) {
 					const name = entry.name;
 					const id = `${modName}/workflows/${name}`;
 					const content = readMarkdownSafe(workflowMd, aggregator);
-					items.push({ id, name: formatName(name), type: 'workflow', path: workflowMd, ...content });
+					items.push({
+						id,
+						name: formatName(name),
+						type: 'workflow',
+						path: workflowMd,
+						...content,
+					});
 				} else {
 					// Check for sub-workflow directories
 					const subItems = scanWorkflowSubdir(fullPath, modName, entry.name, aggregator);
@@ -245,7 +284,13 @@ function scanWorkflowSubdir(dirPath, modName, categoryName, aggregator) {
 					const name = entry.name;
 					const id = `${modName}/workflows/${categoryName}/${name}`;
 					const content = readMarkdownSafe(workflowMd, aggregator);
-					items.push({ id, name: formatName(name), type: 'workflow', path: workflowMd, ...content });
+					items.push({
+						id,
+						name: formatName(name),
+						type: 'workflow',
+						path: workflowMd,
+						...content,
+					});
 				}
 			} else if (extname(entry.name) === '.md' && entry.name !== 'README.md') {
 				const name = basename(entry.name, '.md');
@@ -312,7 +357,11 @@ function buildProjectData(outputPath, aggregator, options) {
 	for (const statusPath of sprintStatusPaths) {
 		if (existsSync(statusPath)) {
 			let raw = '';
-			try { raw = readFileSync(statusPath, 'utf8'); } catch { /* ignore */ }
+			try {
+				raw = readFileSync(statusPath, 'utf8');
+			} catch {
+				/* ignore */
+			}
 
 			// Try YAML format first (only report errors for .yaml files)
 			const result = parseYaml(statusPath);
@@ -324,7 +373,11 @@ function buildProjectData(outputPath, aggregator, options) {
 			if (result.data?.development_status) {
 				const epicNames = parseEpicNamesFromComments(raw);
 				project.sprintStatus = result.data;
-				project.board = { editable: true, sprintStatusPath: statusPath, sprintStatusFormat: 'yaml' };
+				project.board = {
+					editable: true,
+					sprintStatusPath: statusPath,
+					sprintStatusFormat: 'yaml',
+				};
 				const status = result.data.development_status;
 				const epicMap = {};
 
@@ -335,7 +388,13 @@ function buildProjectData(outputPath, aggregator, options) {
 					if (key.match(/^epic-\d+$/)) {
 						const epicNum = key.replace('epic-', '');
 						if (!epicMap[epicNum]) {
-							epicMap[epicNum] = { id: key, num: epicNum, name: epicNames[epicNum] || `Epic ${epicNum}`, status: value, stories: [] };
+							epicMap[epicNum] = {
+								id: key,
+								num: epicNum,
+								name: epicNames[epicNum] || `Epic ${epicNum}`,
+								status: value,
+								stories: [],
+							};
 						} else {
 							epicMap[epicNum].status = value;
 							epicMap[epicNum].name = epicNames[epicNum] || epicMap[epicNum].name;
@@ -351,12 +410,21 @@ function buildProjectData(outputPath, aggregator, options) {
 
 					const parts = key.split('-');
 					const epicNum = parts[0];
-					const storyTitle = parts.slice(2).join(' ').replace(/\b\w/g, (c) => c.toUpperCase());
+					const storyTitle = parts
+						.slice(2)
+						.join(' ')
+						.replace(/\b\w/g, (c) => c.toUpperCase());
 					const story = { id: key, title: storyTitle || key, status: value, epic: epicNum };
 					project.storyList.push(story);
 
 					if (!epicMap[epicNum]) {
-						epicMap[epicNum] = { id: `epic-${epicNum}`, num: epicNum, name: epicNames[epicNum] || `Epic ${epicNum}`, status: 'in-progress', stories: [] };
+						epicMap[epicNum] = {
+							id: `epic-${epicNum}`,
+							num: epicNum,
+							name: epicNames[epicNum] || `Epic ${epicNum}`,
+							status: 'in-progress',
+							stories: [],
+						};
 					}
 					epicMap[epicNum].stories.push(story);
 				}
@@ -367,7 +435,11 @@ function buildProjectData(outputPath, aggregator, options) {
 
 			// Fallback: try markdown table format (### Epic N: Name + | N.M | desc | status |)
 			if (raw && parseSprintStatusMarkdown(raw, project)) {
-				project.board = { editable: true, sprintStatusPath: statusPath, sprintStatusFormat: 'markdown' };
+				project.board = {
+					editable: true,
+					sprintStatusPath: statusPath,
+					sprintStatusFormat: 'markdown',
+				};
 				break;
 			}
 		}
@@ -384,9 +456,7 @@ function buildProjectData(outputPath, aggregator, options) {
 			// Skip sprint-status files (already parsed above)
 			if (name === 'sprint-status') continue;
 
-			const content = ext === '.html'
-				? readHtmlSafe(file)
-				: readMarkdownSafe(file, aggregator);
+			const content = ext === '.html' ? readHtmlSafe(file) : readMarkdownSafe(file, aggregator);
 			const type = categorizeArtifact(file, outputPath);
 			project.artifacts.push({
 				id: `artifact/${name}`,
@@ -412,9 +482,11 @@ function buildProjectData(outputPath, aggregator, options) {
 				} else {
 					// Merge: add stories from epics.md that are missing in sprint-status
 					const mdEpics = parseEpicsFromMarkdown(content.raw, storyContents);
-					const existingIds = new Set(project.storyList.map(s => `${s.epic}-${s.id.split('-')[1]}`));
+					const existingIds = new Set(
+						project.storyList.map((s) => `${s.epic}-${s.id.split('-')[1]}`),
+					);
 					for (const mdEpic of mdEpics) {
-						let sprintEpic = project.epics.find(e => e.num === mdEpic.num);
+						let sprintEpic = project.epics.find((e) => e.num === mdEpic.num);
 						if (!sprintEpic) {
 							// Entire epic missing from sprint-status — add with all stories as backlog
 							sprintEpic = { ...mdEpic, stories: [], status: 'backlog' };
@@ -528,9 +600,7 @@ function buildProjectData(outputPath, aggregator, options) {
 		for (const file of files) {
 			const ext = extname(file).toLowerCase();
 			const name = basename(file, ext);
-			const content = ext === '.yaml'
-				? readYamlSafe(file)
-				: readMarkdownSafe(file, aggregator);
+			const content = ext === '.yaml' ? readYamlSafe(file) : readMarkdownSafe(file, aggregator);
 			project.artifacts.push({
 				id: `artifact/${name}`,
 				name: formatName(name),
@@ -603,10 +673,9 @@ function parseStoriesFromEpics(raw, aggregator) {
 	const storyMap = {};
 	// Split on story headers (supports ### or #### level)
 	const storyRegex = /^#{3,4} Story (\d+)\.(\d+):\s*(.+)$/gm;
-	let match;
 	const positions = [];
 
-	while ((match = storyRegex.exec(raw)) !== null) {
+	for (const match of raw.matchAll(storyRegex)) {
 		positions.push({
 			epicNum: match[1],
 			storyNum: match[2],
@@ -650,9 +719,8 @@ function parseStoriesFromEpics(raw, aggregator) {
 function parseEpicsFromMarkdown(raw, storyContents) {
 	const epicRegex = /^#{2,3} Epic (\d+):\s*(.+)$/gm;
 	const epicMap = {};
-	let match;
 
-	while ((match = epicRegex.exec(raw)) !== null) {
+	for (const match of raw.matchAll(epicRegex)) {
 		const num = match[1];
 		const name = match[2].trim();
 		epicMap[num] = { id: `epic-${num}`, num, name, status: 'backlog', stories: [] };
@@ -665,7 +733,13 @@ function parseEpicsFromMarkdown(raw, storyContents) {
 		if (epicMap[epicNum]) {
 			epicMap[epicNum].stories.push(story);
 		} else {
-			epicMap[epicNum] = { id: `epic-${epicNum}`, num: epicNum, name: `Epic ${epicNum}`, status: 'backlog', stories: [story] };
+			epicMap[epicNum] = {
+				id: `epic-${epicNum}`,
+				num: epicNum,
+				name: `Epic ${epicNum}`,
+				status: 'backlog',
+				stories: [story],
+			};
 		}
 	}
 
@@ -683,8 +757,7 @@ function parseSprintStatusMarkdown(raw, project) {
 
 	// First pass: find all epic headers
 	const epicMap = {};
-	let match;
-	while ((match = epicHeaderRegex.exec(raw)) !== null) {
+	for (const match of raw.matchAll(epicHeaderRegex)) {
 		const epicNum = match[1];
 		epicMap[epicNum] = {
 			id: `epic-${epicNum}`,
@@ -698,7 +771,7 @@ function parseSprintStatusMarkdown(raw, project) {
 	if (Object.keys(epicMap).length === 0) return false;
 
 	// Second pass: find all story rows
-	while ((match = storyRowRegex.exec(raw)) !== null) {
+	for (const match of raw.matchAll(storyRowRegex)) {
 		const epicNum = match[1];
 		const storyNum = match[2];
 		const title = match[3].trim();
@@ -713,7 +786,10 @@ function parseSprintStatusMarkdown(raw, project) {
 		else if (status === 'done') project.stories.done++;
 
 		const story = {
-			id: `${epicNum}-${storyNum}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '')}`,
+			id: `${epicNum}-${storyNum}-${title
+				.toLowerCase()
+				.replace(/[^a-z0-9]+/g, '-')
+				.replace(/-+$/, '')}`,
 			title,
 			status,
 			epic: epicNum,
@@ -721,7 +797,13 @@ function parseSprintStatusMarkdown(raw, project) {
 		project.storyList.push(story);
 
 		if (!epicMap[epicNum]) {
-			epicMap[epicNum] = { id: `epic-${epicNum}`, num: epicNum, name: `Epic ${epicNum}`, status: 'in-progress', stories: [] };
+			epicMap[epicNum] = {
+				id: `epic-${epicNum}`,
+				num: epicNum,
+				name: `Epic ${epicNum}`,
+				status: 'in-progress',
+				stories: [],
+			};
 		}
 		epicMap[epicNum].stories.push(story);
 	}
@@ -736,7 +818,7 @@ function parseSprintStatusMarkdown(raw, project) {
 
 	// Parse bugs table: | BUG-XXX | desc | epic | status |
 	const bugRowRegex = /^\|\s*(BUG-\d+)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/gm;
-	while ((match = bugRowRegex.exec(raw)) !== null) {
+	for (const match of raw.matchAll(bugRowRegex)) {
 		project.bugs.push({
 			id: match[1],
 			description: match[2].trim(),
@@ -747,7 +829,7 @@ function parseSprintStatusMarkdown(raw, project) {
 
 	// Parse pendientes globales: - [ ] text or - [✅] text or - [x] text
 	const pendingRegex = /^-\s*\[([^\]]*)\]\s*\*{0,2}(.+?)(?:\*{0,2}\s*[-–—]\s*(.+))?$/gm;
-	while ((match = pendingRegex.exec(raw)) !== null) {
+	for (const match of raw.matchAll(pendingRegex)) {
 		const check = match[1].trim();
 		const done = check === '✅' || check.toLowerCase() === 'x';
 		project.pendingItems.push({
@@ -781,11 +863,20 @@ function normalizeMarkdownStatus(raw) {
 	const lower = raw.toLowerCase();
 	// Strip parenthetical notes for primary status detection
 	const primary = lower.replace(/\(.*?\)/g, '').trim();
-	if (primary.includes('done') || primary.includes('completado') || raw.includes('✅')) return 'done';
-	if (primary.includes('in-progress') || primary.includes('in progress') || primary.includes('en progreso') || raw.includes('🔄')) return 'in-progress';
-	if (primary.includes('review') || primary.includes('revisión') || primary.includes('revision')) return 'review';
+	if (primary.includes('done') || primary.includes('completado') || raw.includes('✅'))
+		return 'done';
+	if (
+		primary.includes('in-progress') ||
+		primary.includes('in progress') ||
+		primary.includes('en progreso') ||
+		raw.includes('🔄')
+	)
+		return 'in-progress';
+	if (primary.includes('review') || primary.includes('revisión') || primary.includes('revision'))
+		return 'review';
 	if (primary.includes('parcial')) return 'in-progress';
-	if (primary.includes('pendiente') || primary.includes('pending') || primary.includes('backlog')) return 'backlog';
+	if (primary.includes('pendiente') || primary.includes('pending') || primary.includes('backlog'))
+		return 'backlog';
 	if (raw.includes('⏳')) return 'in-progress';
 	return 'backlog';
 }
@@ -796,8 +887,7 @@ function normalizeMarkdownStatus(raw) {
 function parseEpicNamesFromComments(rawYaml) {
 	const names = {};
 	const regex = /#\s*Epic\s+(\d+):\s*(.+)/gi;
-	let match;
-	while ((match = regex.exec(rawYaml)) !== null) {
+	for (const match of rawYaml.matchAll(regex)) {
 		names[match[1]] = match[2].trim();
 	}
 	return names;
@@ -807,10 +897,7 @@ function parseEpicNamesFromComments(rawYaml) {
  * Load BMAD config and project context.
  */
 function loadConfig(bmadPath, aggregator) {
-	const configPaths = [
-		join(bmadPath, 'bmm', 'config.yaml'),
-		join(bmadPath, 'config.yaml'),
-	];
+	const configPaths = [join(bmadPath, 'bmm', 'config.yaml'), join(bmadPath, 'config.yaml')];
 
 	let config = {};
 	for (const configPath of configPaths) {
@@ -840,7 +927,9 @@ function loadConfig(bmadPath, aggregator) {
 					contextPaths.push(join(planningDir, entry));
 				}
 			}
-		} catch { /* ignore */ }
+		} catch {
+			/* ignore */
+		}
 	}
 
 	for (const ctxPath of contextPaths) {
@@ -993,9 +1082,7 @@ function readHtmlSafe(filePath) {
 	try {
 		const raw = readFileSync(filePath, 'utf8');
 		// Escape for srcdoc attribute
-		const escaped = raw
-			.replace(/&/g, '&amp;')
-			.replace(/"/g, '&quot;');
+		const escaped = raw.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
 		const html = `<div class="html-artifact-viewer" style="width:100%;height:80vh;border:1px solid var(--border-color,#ddd);border-radius:8px;overflow:hidden;">
 <iframe style="width:100%;height:100%;border:none;" srcdoc="${escaped}"></iframe></div>`;
 		return { html, frontmatter: null, raw };
@@ -1033,7 +1120,8 @@ function categorizeArtifact(filePath, outputPath) {
 
 	// Root-level files — categorize by filename prefix
 	const name = basename(filePath).toLowerCase();
-	if (/^(test-design|test-review|atdd-|automation-|traceability-|gate-decision-|nfr-)/.test(name)) return 'test-arch';
+	if (/^(test-design|test-review|atdd-|automation-|traceability-|gate-decision-|nfr-)/.test(name))
+		return 'test-arch';
 	if (/^(design-thinking-|innovation-strategy-|problem-solution-|story-)/.test(name)) return 'cis';
 	if (/^brainstorming-/.test(name)) return 'analysis';
 
